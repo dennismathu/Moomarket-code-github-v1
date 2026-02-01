@@ -19,9 +19,9 @@ const LandingPage: React.FC = () => {
                 <span className="text-emerald-600">with confidence.</span>
               </h1>
               <p className="mt-3 text-base text-slate-500 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl leading-relaxed">
-                We bridge the trust gap in Kenya's livestock market. 
-                Every listing includes vet-checked health reports, real videos, 
-                and transparent history from genuine farmers.
+                We help buyers and farmers trust each other.
+                Every cow is listed with real videos, clear health details,
+                and honest information from genuine Kenyan farmers.
               </p>
               <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0 flex flex-col sm:flex-row gap-4">
                 <Link to="/listings" className="inline-flex items-center justify-center px-6 py-4 border border-transparent text-base font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all transform hover:-translate-y-1">
@@ -32,9 +32,9 @@ const LandingPage: React.FC = () => {
                 </Link>
               </div>
               <div className="mt-8 flex items-center gap-6 text-sm text-slate-500 justify-center lg:justify-start">
-                 <div className="flex items-center gap-1"><CheckCircle2 size={16} className="text-emerald-600" /> 100% Vetted</div>
-                 <div className="flex items-center gap-1"><CheckCircle2 size={16} className="text-emerald-600" /> Secure Messages</div>
-                 <div className="flex items-center gap-1"><CheckCircle2 size={16} className="text-emerald-600" /> Vet Verified</div>
+                <div className="flex items-center gap-1"><CheckCircle2 size={16} className="text-emerald-600" /> 100% Vetted</div>
+                <div className="flex items-center gap-1"><CheckCircle2 size={16} className="text-emerald-600" /> Secure Messages</div>
+                <div className="flex items-center gap-1"><CheckCircle2 size={16} className="text-emerald-600" /> Vet Verified</div>
               </div>
             </div>
             <div className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
@@ -144,7 +144,7 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
             {/* Connector Line (hidden on mobile) */}
             <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
-            
+
             <div className="relative z-10 bg-white p-8 rounded-3xl text-center flex flex-col items-center shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
               <div className="w-16 h-16 bg-emerald-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-100">
                 <Search size={32} />
@@ -179,14 +179,14 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="mt-20 p-12 bg-emerald-900 rounded-[3rem] text-center shadow-2xl relative overflow-hidden group">
-             <div className="relative z-10">
-               <h3 className="text-2xl md:text-3xl font-bold text-white mb-8">Start browsing our verified dairy herd today</h3>
-               <Link to="/listings" className="inline-flex items-center justify-center px-12 py-5 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-950/20 active:scale-95">
-                  Browse Verified Cows
-               </Link>
-             </div>
-             {/* Abstract background cow shape or pattern */}
-             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none"></div>
+            <div className="relative z-10">
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-8">Start browsing our verified dairy herd today</h3>
+              <Link to="/listings" className="inline-flex items-center justify-center px-12 py-5 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-950/20 active:scale-95">
+                Browse Verified Cows
+              </Link>
+            </div>
+            {/* Abstract background cow shape or pattern */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none"></div>
           </div>
         </div>
       </section>
@@ -204,7 +204,7 @@ const LandingPage: React.FC = () => {
                   Professional Delivery & <br className="hidden md:block" /> Safe Transport
                 </h2>
                 <p className="text-slate-400 text-lg mb-8 max-w-xl leading-relaxed">
-                  Soon, buyers will be able to request safe, animal-friendly transport directly through the platform. 
+                  Soon, buyers will be able to request safe, animal-friendly transport directly through the platform.
                   Verified transporters only. Stress-free delivery for your livestock.
                 </p>
                 <div className="flex flex-wrap gap-6 justify-center md:justify-start">
