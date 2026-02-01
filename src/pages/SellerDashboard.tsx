@@ -1,0 +1,392 @@
+
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+   ShoppingBag, MessageSquare, Calendar, ChevronRight, CheckCircle,
+   Clock, Plus, ShieldCheck, Eye, TrendingUp, Award, Settings,
+   BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
+   Trash2, BellRing, Info, X, Droplets, Baby
+} from 'lucide-react';
+import { MOCK_LISTINGS } from '../data/mockData';
+import { User, CowListing } from '../types/types';
+
+interface DashboardProps {
+   user: User | null;
+}
+
+const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
+   const navigate = useNavigate();
+   const [sellerListings, setSellerListings] = useState<CowListing[]>(MOCK_LISTINGS.filter(l => l.seller_id === user?.id));
+   const [selectedCowForManagement, setSelectedCowForManagement] = useState<CowListing | null>(null);
+   const [selectedCowForSold, setSelectedCowForSold] = useState<CowListing | null>(null);
+   const [soldFeedback, setSoldFeedback] = useState('');
+   const [buyerRating, setBuyerRating] = useState(0);
+   const [nudgeBuyer, setNudgeBuyer] = useState(false);
+
+   const handleMarkAsSold = () => {
+      if (selectedCowForSold) {
+         setSellerListings(prev => prev.map(c => c.id === selectedCowForSold.id ? { ...c, status: 'sold' } : c));
+         setSelectedCowForSold(null);
+         setSelectedCowForManagement(null);
+         setSoldFeedback('');
+         setBuyerRating(0);
+         setNudgeBuyer(false);
+         // Logic for nudging buyer (e.g., API call) would go here
+      }
+   };
+
+   const handleEdit = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigate(`/seller/new-listing?edit=${id}`);
+   };
+
+   return (
+      <div className="bg-slate-50 min-h-screen py-10 relative">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Welcome Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+               <div>
+                  <div className="flex items-center gap-2 mb-2">
+                     <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase rounded tracking-wider">Active Seller Session</span>
+                     <span className="text-slate-300">•</span>
+                     <span className="text-xs text-slate-500 font-medium italic">Verified Dairy Partner</span>
+                  </div>
+                  <h1 className="text-4xl font-extrabold text-slate-900 font-serif">Farmer Dashboard</h1>
+                  <p className="text-slate-500 mt-1">Manage your livestock, track performance, and respond to buyers.</p>
+               </div>
+               <div className="flex items-center gap-3">
+                  <Link to="/seller/new-listing" className="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all gap-2">
+                     <Plus size={20} /> List New Cow
+                  </Link>
+               </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-emerald-500 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Listings</p>
+                     <ShoppingBag size={16} className="text-slate-300 group-hover:text-emerald-500" />
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">{sellerListings.filter(c => c.status !== 'sold' && c.status !== 'draft').length}</p>
+               </div>
+               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-blue-500 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Views</p>
+                     <Eye size={16} className="text-slate-300 group-hover:text-blue-500" />
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">1,248</p>
+                  <p className="text-[10px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                     <TrendingUp size={12} /> +12% this week
+                  </p>
+               </div>
+               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-amber-500 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Inspections</p>
+                     <Calendar size={16} className="text-slate-300 group-hover:text-amber-500" />
+                  </div>
+                  <p className="text-3xl font-black text-emerald-600">4</p>
+               </div>
+               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-emerald-600 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Buyer Inquiries</p>
+                     <MessageSquare size={16} className="text-slate-300 group-hover:text-emerald-600" />
+                  </div>
+                  <p className="text-3xl font-black text-blue-600">12</p>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+               {/* Main Feed */}
+               <div className="lg:col-span-2 space-y-8">
+                  <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                           <Award size={20} className="text-emerald-600" />
+                           Your Active Cattle
+                        </h3>
+                        <Link to="/listings" className="text-xs font-bold text-emerald-600 hover:text-emerald-700">Browse Marketplace</Link>
+                     </div>
+                     <div className="divide-y divide-slate-100">
+                        {sellerListings.map(cow => (
+                           <div
+                              key={cow.id}
+                              onClick={() => setSelectedCowForManagement(cow)}
+                              className="p-6 flex items-center gap-6 group hover:bg-slate-50 transition-colors cursor-pointer"
+                           >
+                              <div className="relative">
+                                 <img src={cow.photos[0]} className="w-20 h-20 rounded-xl object-cover" />
+                                 <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-slate-100">
+                                    <div className={`w-3 h-3 rounded-full ${cow.status === 'approved' ? 'bg-emerald-500' :
+                                          cow.status === 'sold' ? 'bg-slate-400' :
+                                             cow.status === 'draft' ? 'bg-slate-300' :
+                                                'bg-amber-500'
+                                       }`}></div>
+                                 </div>
+                              </div>
+                              <div className="flex-grow">
+                                 <div className="flex justify-between items-start mb-1">
+                                    <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight text-lg">{cow.breed} • {cow.age}Y</h4>
+                                    <p className="text-sm font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
+                                 </div>
+                                 <div className="flex items-center gap-4">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${cow.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                          cow.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                             cow.status === 'sold' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                cow.status === 'draft' ? 'bg-slate-50 text-slate-400 border-slate-100' :
+                                                   'bg-slate-50 text-slate-500 border-slate-100'
+                                       }`}>
+                                       {cow.status}
+                                    </span>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Peak: {Math.max(...cow.milk_yield_last_7_days)}L</div>
+                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                                       <Eye size={12} /> 124 views
+                                    </div>
+                                 </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                 <button
+                                    onClick={(e) => handleEdit(cow.id, e)}
+                                    className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                    title="Edit Details"
+                                 >
+                                    <Edit3 size={18} />
+                                 </button>
+                                 <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600" />
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
+                        <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-emerald-600 transition-colors">Load History</button>
+                     </div>
+                  </div>
+
+                  {/* Analytics Summary */}
+                  <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                     <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><BarChart3 size={20} /></div>
+                           <h3 className="font-bold text-slate-900">Market Insights</h3>
+                        </div>
+                        <Settings size={18} className="text-slate-300 cursor-pointer" />
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Demand Rank</p>
+                           <p className="text-xl font-bold text-slate-800">Top 15% in Kiambu</p>
+                           <p className="text-xs text-slate-500 mt-1">Based on search frequency</p>
+                        </div>
+                        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Price Benchmark</p>
+                           <p className="text-xl font-bold text-slate-800">KSh 210k - 260k</p>
+                           <p className="text-xs text-slate-500 mt-1">Average for Friesian Parity 2</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Sidebar */}
+               <div className="space-y-8">
+                  <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900">Profile Strength</h3>
+                        <Award size={18} className="text-emerald-600" />
+                     </div>
+                     <div className="p-6 space-y-4">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
+                           <span>Farmer Tier: Verified</span>
+                           <span className="text-emerald-600 font-black">80%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                           <div className="w-[80%] h-full bg-emerald-600"></div>
+                        </div>
+                        <div className="pt-4 space-y-3">
+                           <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
+                              <CheckCircle size={14} className="text-emerald-600" /> Phone & ID Verified
+                           </div>
+                           <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
+                              <CheckCircle size={14} className="text-emerald-600" /> Farm Location Linked
+                           </div>
+                           <div className="flex items-center gap-3 text-xs font-medium text-slate-400 italic">
+                              <Plus size={14} /> Add 360° Farm View
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden">
+                     <div className="relative z-10">
+                        <h4 className="font-bold text-lg mb-4">Need help selling?</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                           Our agents can visit your farm to capture professional videos and verify your herd details.
+                        </p>
+                        <button className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-emerald-700 transition-colors">
+                           Request Visit
+                        </button>
+                     </div>
+                     <div className="absolute -bottom-4 -right-4 opacity-10">
+                        <ShieldCheck size={120} />
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* Seller Management Modal (Detailed View) */}
+         {selectedCowForManagement && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+               <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
+                  <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100">
+                     <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-lg border border-slate-200">
+                           ID: {selectedCowForManagement.id}
+                        </span>
+                        <h3 className="font-bold text-slate-900">Manage Listing</h3>
+                     </div>
+                     <button onClick={() => setSelectedCowForManagement(null)} className="p-2 text-slate-400 hover:text-slate-600">
+                        <X size={24} />
+                     </button>
+                  </div>
+
+                  <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="space-y-6">
+                        <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-md">
+                           <img src={selectedCowForManagement.photos[0]} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                           <div className="text-center flex-1 border-r border-slate-200">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">Views</p>
+                              <p className="text-xl font-black text-slate-900">124</p>
+                           </div>
+                           <div className="text-center flex-1">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">Inquiries</p>
+                              <p className="text-xl font-black text-blue-600">8</p>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="space-y-6">
+                        <div>
+                           <h4 className="text-2xl font-black text-slate-900 font-serif mb-1">{selectedCowForManagement.breed}</h4>
+                           <p className="text-sm text-slate-500 flex items-center gap-1 font-medium italic"><Clock size={14} /> Listed {new Date(selectedCowForManagement.createdAt).toLocaleDateString()}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">Current Price</p>
+                              <p className="text-sm font-black text-slate-900">KSh {selectedCowForManagement.price.toLocaleString()}</p>
+                           </div>
+                           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
+                              <p className="text-sm font-black text-emerald-600 uppercase tracking-tight">{selectedCowForManagement.status}</p>
+                           </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                           <button
+                              onClick={(e) => handleEdit(selectedCowForManagement.id, e)}
+                              className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all"
+                           >
+                              <Edit3 size={18} /> Edit Details
+                           </button>
+                           {selectedCowForManagement.status !== 'sold' && (
+                              <button
+                                 onClick={() => setSelectedCowForSold(selectedCowForManagement)}
+                                 className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
+                              >
+                                 <CheckCircle2 size={18} /> Mark as Sold
+                              </button>
+                           )}
+                           <button className="w-full py-3 text-slate-400 text-xs font-bold uppercase tracking-widest hover:text-red-500 flex items-center justify-center gap-2">
+                              <Trash2 size={14} /> Delete Listing
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+
+         {/* Mark as Sold Modal */}
+         {selectedCowForSold && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in zoom-in-95 duration-200">
+               <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
+                  <div className="bg-emerald-600 p-8 text-white text-center">
+                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
+                        <CheckCircle2 size={32} />
+                     </div>
+                     <h3 className="text-2xl font-black font-serif">Sale Confirmation</h3>
+                     <p className="text-emerald-100">Closing deal for {selectedCowForSold.breed}</p>
+                  </div>
+
+                  <div className="p-8 space-y-6">
+                     <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-4">
+                        <Info className="text-amber-600 shrink-0 mt-1" size={20} />
+                        <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                           Confirming the sale will move this listing to "Sold" status. This action cannot be undone once confirmed.
+                        </p>
+                     </div>
+
+                     <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Rate the Transaction</label>
+                        <div className="flex gap-2 mb-4">
+                           {[1, 2, 3, 4, 5].map(star => (
+                              <button
+                                 key={star}
+                                 onClick={() => setBuyerRating(star)}
+                                 className={`p-1 transition-all ${star <= buyerRating ? 'text-amber-400 scale-110' : 'text-slate-200 hover:text-amber-200'}`}
+                              >
+                                 <Star size={24} fill={star <= buyerRating ? "currentColor" : "none"} />
+                              </button>
+                           ))}
+                        </div>
+                        <textarea
+                           placeholder="How was the experience with the buyer? (Optional)"
+                           className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm min-h-[80px]"
+                           value={soldFeedback}
+                           onChange={(e) => setSoldFeedback(e.target.value)}
+                        />
+                     </div>
+
+                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                           <div className="relative flex items-center">
+                              <input
+                                 type="checkbox"
+                                 className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 checked:border-emerald-600 checked:bg-emerald-600 transition-all"
+                                 checked={nudgeBuyer}
+                                 onChange={(e) => setNudgeBuyer(e.target.checked)}
+                              />
+                              <BellRing className="absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100 left-1 pointer-events-none" />
+                           </div>
+                           <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-700">Nudge buyer for a review</p>
+                              <p className="text-[10px] text-slate-500">We'll send a friendly SMS request for feedback.</p>
+                           </div>
+                        </label>
+                     </div>
+
+                     <div className="flex gap-4 pt-4">
+                        <button
+                           onClick={() => setSelectedCowForSold(null)}
+                           className="flex-1 py-4 text-slate-500 font-bold rounded-xl text-sm"
+                        >
+                           Go Back
+                        </button>
+                        <button
+                           onClick={handleMarkAsSold}
+                           className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 text-sm"
+                        >
+                           Yes, Mark as Sold
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
+export default SellerDashboard;
