@@ -9,6 +9,34 @@ const ListingDetail: React.FC = () => {
   const [activePhoto, setActivePhoto] = useState(0);
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [showDeliveryTooltip, setShowDeliveryTooltip] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      setActivePhoto((prev) => (prev + 1) % (cow?.photos.length || 1));
+    }
+    if (isRightSwipe) {
+      setActivePhoto((prev) => (prev - 1 + (cow?.photos.length || 1)) % (cow?.photos.length || 1));
+    }
+  };
 
   const cow = MOCK_LISTINGS.find(c => c.id === id);
   const seller = cow ? MOCK_USERS.find(u => u.id === cow.seller_id) : null;
@@ -66,7 +94,12 @@ const ListingDetail: React.FC = () => {
             </div>
 
             <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200">
-              <div className="relative aspect-[4/3] bg-slate-100">
+              <div
+                className="relative aspect-[4/3] bg-slate-100 touch-pan-y"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
                 <img src={cow.photos[activePhoto]} alt={cow.breed} className="w-full h-full object-cover transition-opacity duration-500" />
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                   {cow.photos.map((_, idx) => (

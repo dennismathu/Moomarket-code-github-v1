@@ -112,29 +112,37 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                            <div
                               key={cow.id}
                               onClick={() => setSelectedCowForManagement(cow)}
-                              className="p-6 flex items-center gap-6 group hover:bg-slate-50 transition-colors cursor-pointer"
+                              className="p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 group hover:bg-slate-50 transition-colors cursor-pointer"
                            >
-                              <div className="relative">
-                                 <img src={cow.photos[0]} className="w-20 h-20 rounded-xl object-cover" />
-                                 <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-slate-100">
-                                    <div className={`w-3 h-3 rounded-full ${cow.status === 'approved' ? 'bg-emerald-500' :
+                              <div className="flex w-full sm:w-auto items-center gap-4">
+                                 <div className="relative shrink-0">
+                                    <img src={cow.photos[0]} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover" />
+                                    <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-slate-100">
+                                       <div className={`w-3 h-3 rounded-full ${cow.status === 'approved' ? 'bg-emerald-500' :
                                           cow.status === 'sold' ? 'bg-slate-400' :
                                              cow.status === 'draft' ? 'bg-slate-300' :
                                                 'bg-amber-500'
-                                       }`}></div>
+                                          }`}></div>
+                                    </div>
+                                 </div>
+                                 {/* Only visible on mobile, next to image */}
+                                 <div className="sm:hidden flex-grow">
+                                    <h4 className="font-bold text-slate-900 tracking-tight text-base">{cow.breed} • {cow.age}Y</h4>
+                                    <p className="text-sm font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
                                  </div>
                               </div>
-                              <div className="flex-grow">
-                                 <div className="flex justify-between items-start mb-1">
+
+                              <div className="flex-grow w-full sm:w-auto">
+                                 <div className="hidden sm:flex justify-between items-start mb-1">
                                     <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight text-lg">{cow.breed} • {cow.age}Y</h4>
                                     <p className="text-sm font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
                                  </div>
-                                 <div className="flex items-center gap-4">
+                                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 sm:mt-0">
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${cow.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                          cow.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                             cow.status === 'sold' ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                                cow.status === 'draft' ? 'bg-slate-50 text-slate-400 border-slate-100' :
-                                                   'bg-slate-50 text-slate-500 border-slate-100'
+                                       cow.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                          cow.status === 'sold' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                             cow.status === 'draft' ? 'bg-slate-50 text-slate-400 border-slate-100' :
+                                                'bg-slate-50 text-slate-500 border-slate-100'
                                        }`}>
                                        {cow.status}
                                     </span>
@@ -144,15 +152,16 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                                     </div>
                                  </div>
                               </div>
-                              <div className="flex items-center gap-3">
+
+                              <div className="flex items-center gap-3 absolute top-4 right-4 sm:static">
                                  <button
                                     onClick={(e) => handleEdit(cow.id, e)}
-                                    className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                    className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all bg-white sm:bg-transparent shadow-sm sm:shadow-none border sm:border-none border-slate-100"
                                     title="Edit Details"
                                  >
                                     <Edit3 size={18} />
                                  </button>
-                                 <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600" />
+                                 <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600 hidden sm:block" />
                               </div>
                            </div>
                         ))}
@@ -236,8 +245,8 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
          {/* Seller Management Modal (Detailed View) */}
          {selectedCowForManagement && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-               <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
-                  <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100">
+               <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+                  <div className="flex justify-between items-center px-6 py-4 md:px-8 md:py-6 border-b border-slate-100 shrink-0">
                      <div className="flex items-center gap-3">
                         <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-lg border border-slate-200">
                            ID: {selectedCowForManagement.id}
@@ -249,7 +258,7 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                      </button>
                   </div>
 
-                  <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 overflow-y-auto custom-scrollbar">
                      <div className="space-y-6">
                         <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-md">
                            <img src={selectedCowForManagement.photos[0]} className="w-full h-full object-cover" />
@@ -311,8 +320,8 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
          {/* Mark as Sold Modal */}
          {selectedCowForSold && (
             <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in zoom-in-95 duration-200">
-               <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
-                  <div className="bg-emerald-600 p-8 text-white text-center">
+               <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+                  <div className="bg-emerald-600 p-6 md:p-8 text-white text-center shrink-0">
                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
                         <CheckCircle2 size={32} />
                      </div>
@@ -320,7 +329,7 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                      <p className="text-emerald-100">Closing deal for {selectedCowForSold.breed}</p>
                   </div>
 
-                  <div className="p-8 space-y-6">
+                  <div className="p-6 md:p-8 space-y-6 overflow-y-auto">
                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-4">
                         <Info className="text-amber-600 shrink-0 mt-1" size={20} />
                         <p className="text-xs text-amber-800 leading-relaxed font-medium">
@@ -367,16 +376,16 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                         </label>
                      </div>
 
-                     <div className="flex gap-4 pt-4">
+                     <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-2">
                         <button
                            onClick={() => setSelectedCowForSold(null)}
-                           className="flex-1 py-4 text-slate-500 font-bold rounded-xl text-sm"
+                           className="w-full sm:flex-1 py-4 text-slate-500 font-bold rounded-xl text-sm border border-transparent hover:bg-slate-50 transition-colors"
                         >
                            Go Back
                         </button>
                         <button
                            onClick={handleMarkAsSold}
-                           className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 text-sm"
+                           className="w-full sm:flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 text-sm hover:bg-emerald-700 transition-all"
                         >
                            Yes, Mark as Sold
                         </button>

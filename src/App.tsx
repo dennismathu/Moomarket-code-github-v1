@@ -13,12 +13,15 @@ import AdminPanel from './pages/AdminPanel';
 import { MOCK_USERS } from './data/mockData';
 import { User as UserType } from './types/types';
 
+import ScrollToTop from './components/layout/ScrollToTop';
+
 // Simple Context Mock for Auth
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(MOCK_USERS[0]); // Default to seller for demo
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col font-sans">
         <Navbar currentUser={currentUser} />
 
