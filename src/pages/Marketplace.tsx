@@ -1,54 +1,107 @@
-
-import React, { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity } from 'lucide-react';
-import { MOCK_LISTINGS, MOCK_USERS } from '../data/mockData';
+import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle } from 'lucide-react';
+import { getListings } from '../lib/database';
 
-const Marketplace: React.FC = () => {
+interface Listing {
+  id: string;
+  breed: string;
+  age: number;
+  price: number;
+  county: string;
+  specific_location: string;
+  is_pregnant: boolean;
+  is_vaccinated: boolean;
+  is_dewormed: boolean;
+  avg_milk_yield: number;
+  status: string;
+  seller: {
+    full_name: string;
+    is_phone_verified: boolean;
+    is_id_verified: boolean;
+    seller_profile: {
+      farm_name: string | null;
+      rating: number | null;
+    } | null;
+  };
+  media: Array<{
+    media_url: string;
+    media_type: string;
+  }>;
+}
+
+export default function Marketplace() {
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [filterBreed, setFilterBreed] = useState<string>('All');
   const [filterCounty, setFilterCounty] = useState<string>('All');
   const [minMilkYield, setMinMilkYield] = useState<number>(0);
-  const [isVetOnly, setIsVetOnly] = useState(false);
   const [isPregnantOnly, setIsPregnantOnly] = useState(false);
   const [isVaccinatedOnly, setIsVaccinatedOnly] = useState(false);
   const [isDewormedOnly, setIsDewormedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Fetch listings on mount
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await getListings({
+        status: 'approved',
+      });
+
+      if (fetchError) {
+        console.error('Marketplace fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      setListings(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load listings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredListings = useMemo(() => {
-    return MOCK_LISTINGS.filter(cow => {
-      const avgYield = cow.milk_yield_last_7_days.reduce((a, b) => a + b, 0) / cow.milk_yield_last_7_days.length;
+    return listings.filter(listing => {
+      const matchBreed = filterBreed === 'All' || listing.breed === filterBreed;
+      const matchCounty = filterCounty === 'All' || listing.county === filterCounty;
+      const matchYield = listing.avg_milk_yield >= minMilkYield;
+      const matchPregnant = !isPregnantOnly || listing.is_pregnant;
+      const matchVaccinated = !isVaccinatedOnly || listing.is_vaccinated;
+      const matchDewormed = !isDewormedOnly || listing.is_dewormed;
 
-      const matchBreed = filterBreed === 'All' || cow.breed === filterBreed;
-      const matchCounty = filterCounty === 'All' || cow.location.includes(filterCounty);
-      const matchVet = !isVetOnly || cow.vet_verification.verified;
-      const matchYield = avgYield >= minMilkYield;
-      const matchPregnant = !isPregnantOnly || cow.is_pregnant;
-      const matchVaccinated = !isVaccinatedOnly || cow.health.vaccinated;
-      const matchDewormed = !isDewormedOnly || cow.health.dewormed;
+      const matchSearch = listing.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.county.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.specific_location.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchSearch = cow.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cow.location.toLowerCase().includes(searchTerm.toLowerCase());
-
-      // Allow pending for demo purposes, usually only approved
-      const approvedOnly = cow.status === 'approved' || cow.status === 'pending';
-
-      return matchBreed && matchCounty && matchVet && matchYield &&
+      return matchBreed && matchCounty && matchYield &&
         matchPregnant && matchVaccinated && matchDewormed &&
-        matchSearch && approvedOnly;
+        matchSearch;
     });
-  }, [filterBreed, filterCounty, isVetOnly, minMilkYield, isPregnantOnly, isVaccinatedOnly, isDewormedOnly, searchTerm]);
+  }, [listings, filterBreed, filterCounty, minMilkYield, isPregnantOnly, isVaccinatedOnly, isDewormedOnly, searchTerm]);
 
   const clearFilters = () => {
     setFilterBreed('All');
     setFilterCounty('All');
     setMinMilkYield(0);
-    setIsVetOnly(false);
     setIsPregnantOnly(false);
     setIsVaccinatedOnly(false);
     setIsDewormedOnly(false);
     setSearchTerm('');
   };
+
+  const counties = ["Kiambu", "Nakuru", "Nyeri", "Murang'a", "Bomet", "Meru", "Uasin Gishu", "Kericho", "Nyandarua", "Kirinyaga"];
+  const breeds = ["Friesian", "Ayrshire", "Jersey", "Guernsey", "Crossbreed"];
 
   return (
     <div className="bg-slate-50 min-h-screen py-8">
@@ -56,7 +109,9 @@ const Marketplace: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Cow Marketplace</h1>
-            <p className="text-slate-500">Browse {filteredListings.length} verified dairy cows across Kenya.</p>
+            <p className="text-slate-500">
+              {loading ? 'Loading...' : `Browse ${filteredListings.length} verified dairy cows across Kenya.`}
+            </p>
           </div>
           <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid size={20} /></button>
@@ -105,10 +160,24 @@ const Marketplace: React.FC = () => {
                     onChange={(e) => setFilterBreed(e.target.value)}
                   >
                     <option>All</option>
-                    <option>Friesian</option>
-                    <option>Ayrshire</option>
-                    <option>Jersey</option>
-                    <option>Guernsey</option>
+                    {breeds.map(breed => (
+                      <option key={breed}>{breed}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* County */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">County</label>
+                  <select
+                    className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
+                    value={filterCounty}
+                    onChange={(e) => setFilterCounty(e.target.value)}
+                  >
+                    <option>All</option>
+                    {counties.map(county => (
+                      <option key={county}>{county}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -136,59 +205,37 @@ const Marketplace: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Verification & Health */}
+                {/* Health Filters */}
                 <div className="pt-6 border-t border-slate-100 space-y-4">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Trust & Health</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Health Status</label>
 
                   <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 checked:border-emerald-600 checked:bg-emerald-600 transition-all"
-                        checked={isVetOnly}
-                        onChange={(e) => setIsVetOnly(e.target.checked)}
-                      />
-                      <BadgeCheck className="absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 left-0.5 pointer-events-none" />
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-emerald-600 transition-colors">Vet-Verified Only</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 checked:border-blue-600 checked:bg-blue-600 transition-all"
-                        checked={isPregnantOnly}
-                        onChange={(e) => setIsPregnantOnly(e.target.checked)}
-                      />
-                      <Baby className="absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 left-0.5 pointer-events-none" />
-                    </div>
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                      checked={isPregnantOnly}
+                      onChange={(e) => setIsPregnantOnly(e.target.checked)}
+                    />
                     <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">Pregnant Only</span>
                   </label>
 
                   <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 checked:border-indigo-600 checked:bg-indigo-600 transition-all"
-                        checked={isVaccinatedOnly}
-                        onChange={(e) => setIsVaccinatedOnly(e.target.checked)}
-                      />
-                      <Activity className="absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 left-0.5 pointer-events-none" />
-                    </div>
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                      checked={isVaccinatedOnly}
+                      onChange={(e) => setIsVaccinatedOnly(e.target.checked)}
+                    />
                     <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">Fully Vaccinated</span>
                   </label>
 
                   <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative flex items-center">
-                      <input
-                        type="checkbox"
-                        className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 checked:border-indigo-600 checked:bg-indigo-600 transition-all"
-                        checked={isDewormedOnly}
-                        onChange={(e) => setIsDewormedOnly(e.target.checked)}
-                      />
-                      <CheckDown className="absolute h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 left-0.5 pointer-events-none" />
-                    </div>
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                      checked={isDewormedOnly}
+                      onChange={(e) => setIsDewormedOnly(e.target.checked)}
+                    />
                     <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">Recently Dewormed</span>
                   </label>
                 </div>
@@ -197,46 +244,65 @@ const Marketplace: React.FC = () => {
           </aside>
 
           <div className="lg:col-span-3">
-            {filteredListings.length > 0 ? (
+            {loading ? (
+              <div className="bg-white rounded-2xl p-16 text-center border border-slate-200">
+                <Loader2 size={48} className="animate-spin text-emerald-600 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-slate-800 mb-2">Loading listings...</h3>
+                <p className="text-sm text-slate-500">Please wait while we fetch the latest cows</p>
+              </div>
+            ) : error ? (
+              <div className="bg-white rounded-2xl p-16 text-center border border-red-200">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                  <AlertCircle size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">Error loading listings</h3>
+                <p className="text-sm text-slate-500 mb-6">{error}</p>
+                <button
+                  onClick={fetchListings}
+                  className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : filteredListings.length > 0 ? (
               <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
-                {filteredListings.map((cow) => {
-                  const seller = MOCK_USERS.find(u => u.id === cow.seller_id);
-                  const avgYield = (cow.milk_yield_last_7_days.reduce((a, b) => a + b, 0) / cow.milk_yield_last_7_days.length).toFixed(1);
+                {filteredListings.map((listing) => {
+                  console.log('Listing media for', listing.breed, ':', listing.media);
+                  const photo = listing.media && listing.media.length > 0
+                    ? listing.media.find(m => m.media_type === 'photo')?.media_url || '/placeholder-cow.jpg'
+                    : '/placeholder-cow.jpg';
 
                   return (
-                    <Link key={cow.id} to={`/listing/${cow.id}`} className={`bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all group ${viewMode === 'list' ? 'flex flex-col sm:flex-row' : ''}`}>
+                    <Link key={listing.id} to={`/listing/${listing.id}`} className={`bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all group ${viewMode === 'list' ? 'flex flex-col sm:flex-row' : ''}`}>
                       <div className={`relative ${viewMode === 'list' ? 'sm:w-64 h-48 sm:h-full' : 'h-52'}`}>
-                        <img src={cow.photos[0]} alt={cow.breed} className="w-full h-full object-cover" />
-                        {cow.vet_verification.verified && cow.vet_verification.report_url && (
-                          <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded-lg text-[9px] font-bold shadow-lg">
-                            <BadgeCheck size={12} /> VET VERIFIED
-                          </div>
-                        )}
-                        <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md text-white rounded-lg text-xs font-bold border border-white/20">{cow.location}</div>
+                        <img src={photo} alt={listing.breed} className="w-full h-full object-cover" />
+                        <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md text-white rounded-lg text-xs font-bold border border-white/20">
+                          {listing.specific_location}, {listing.county}
+                        </div>
                       </div>
                       <div className="p-5 flex flex-col justify-between flex-grow">
                         <div>
                           <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">{cow.breed} • {cow.age}Y</h3>
+                            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">{listing.breed} • {listing.age}Y</h3>
                             <div className="text-right">
-                              <p className="text-lg font-extrabold text-slate-900">KSh {cow.price.toLocaleString()}</p>
+                              <p className="text-lg font-extrabold text-slate-900">KSh {listing.price.toLocaleString()}</p>
                               <div className="mt-1 flex items-center justify-end gap-1">
                                 <Droplets size={12} className="text-emerald-500" />
-                                <span className="text-sm font-black text-emerald-600 tracking-tighter">{avgYield}L AVG</span>
+                                <span className="text-sm font-black text-emerald-600 tracking-tighter">{listing.avg_milk_yield.toFixed(1)}L AVG</span>
                               </div>
                             </div>
                           </div>
                           {/* Trust Badges */}
                           <div className="flex gap-2 mb-4">
-                            {seller?.is_phone_verified && <div className="p-1 bg-blue-100 text-blue-600 rounded" title="Phone Verified"><Smartphone size={12} /></div>}
-                            {seller?.is_id_verified && <div className="p-1 bg-indigo-100 text-indigo-600 rounded" title="ID Verified"><ShieldCheck size={12} /></div>}
-                            {cow.is_pregnant && <div className="p-1 bg-blue-50 text-blue-500 rounded" title="Pregnant"><Baby size={12} /></div>}
+                            {listing.seller.is_phone_verified && <div className="p-1 bg-blue-100 text-blue-600 rounded" title="Phone Verified"><Smartphone size={12} /></div>}
+                            {listing.seller.is_id_verified && <div className="p-1 bg-indigo-100 text-indigo-600 rounded" title="ID Verified"><ShieldCheck size={12} /></div>}
+                            {listing.is_pregnant && <div className="p-1 bg-blue-50 text-blue-500 rounded" title="Pregnant"><Baby size={12} /></div>}
                           </div>
                         </div>
                         <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">{cow.seller_name.charAt(0)}</div>
-                            <span className="text-xs font-medium text-slate-600">{cow.seller_name}</span>
+                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">{listing.seller.full_name.charAt(0)}</div>
+                            <span className="text-xs font-medium text-slate-600">{listing.seller.full_name}</span>
                           </div>
                           <div className="text-emerald-600 text-xs font-bold uppercase tracking-widest flex items-center gap-1">View Details <ChevronDown size={14} className="-rotate-90" /></div>
                         </div>
@@ -265,24 +331,4 @@ const Marketplace: React.FC = () => {
       </div>
     </div>
   );
-};
-
-// Helper component for dewormed check icon
-const CheckDown = ({ className, size }: { className?: string, size?: number }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size || 24}
-    height={size || 24}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="3"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-export default Marketplace;
+}

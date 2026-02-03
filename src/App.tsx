@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import ScrollToTop from './components/layout/ScrollToTop';
+
+// Pages
 import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import Marketplace from './pages/Marketplace';
 import ListingDetail from './pages/ListingDetail';
 import SellerOnboarding from './pages/SellerOnboarding';
@@ -10,39 +17,97 @@ import NewListing from './pages/NewListing';
 import SellerDashboard from './pages/SellerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import AdminPanel from './pages/AdminPanel';
-import { MOCK_USERS } from './data/mockData';
-import { User as UserType } from './types/types';
 
-import ScrollToTop from './components/layout/ScrollToTop';
-
-// Simple Context Mock for Auth
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<UserType | null>(MOCK_USERS[0]); // Default to seller for demo
-
   return (
     <Router>
-      <ScrollToTop />
-      <div className="min-h-screen flex flex-col font-sans">
-        <Navbar currentUser={currentUser} />
+      <AuthProvider>
+        <ScrollToTop />
+        <div className="min-h-screen flex flex-col font-sans">
+          <Navbar />
 
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/listings" element={<Marketplace />} />
-            <Route path="/listing/:id" element={<ListingDetail />} />
-            <Route path="/seller/onboarding" element={<SellerOnboarding />} />
-            <Route path="/seller/new-listing" element={<NewListing />} />
-            <Route path="/dashboard/seller" element={<SellerDashboard user={currentUser} />} />
-            <Route path="/dashboard/buyer" element={<BuyerDashboard user={currentUser} />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="*" element={<div className="p-10 text-center text-slate-500">Page under construction...</div>} />
-          </Routes>
-        </main>
+          <main className="flex-grow">
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/listings" element={<Marketplace />} />
+              <Route path="/listing/:id" element={<ListingDetail />} />
 
-        <Footer />
-      </div>
+              {/* Protected routes - Seller only */}
+              <Route
+                path="/seller/onboarding"
+                element={
+                  <ProtectedRoute requireRole="seller">
+                    <SellerOnboarding />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/seller/new-listing"
+                element={
+                  <ProtectedRoute requireRole="seller">
+                    <NewListing />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/seller"
+                element={
+                  <ProtectedRoute requireRole="seller">
+                    <SellerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected routes - Buyer only */}
+              <Route
+                path="/dashboard/buyer"
+                element={
+                  <ProtectedRoute requireRole="buyer">
+                    <BuyerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected routes - Admin only */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requireRole="admin">
+                    <AdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 404 */}
+              <Route
+                path="*"
+                element={
+                  <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                    <div className="text-center">
+                      <h1 className="text-6xl font-bold text-slate-900 mb-4">404</h1>
+                      <p className="text-slate-500 mb-6">Page not found</p>
+                      <a
+                        href="/"
+                        className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors inline-block"
+                      >
+                        Go Home
+                      </a>
+                    </div>
+                  </div>
+                }
+              />
+            </Routes>
+          </main>
+
+          <Footer />
+        </div>
+      </AuthProvider>
     </Router>
   );
 };
 
 export default App;
+

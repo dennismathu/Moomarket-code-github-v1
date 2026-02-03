@@ -1,27 +1,52 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
    ShoppingBag, MessageSquare, Calendar, ChevronRight, CheckCircle,
    Clock, Plus, ShieldCheck, Eye, TrendingUp, Award, Settings,
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
-   Trash2, BellRing, Info, X, Droplets, Baby
+   Trash2, BellRing, Info, X, Droplets, Baby, Loader2
 } from 'lucide-react';
-import { MOCK_LISTINGS } from '../data/mockData';
+import { getSellerListings } from '../lib/database';
+import { useAuth } from '../contexts/AuthContext';
 import { User, CowListing } from '../types/types';
 
 interface DashboardProps {
    user: User | null;
 }
 
-const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
+const SellerDashboard: React.FC = () => {
+   const { user } = useAuth();
    const navigate = useNavigate();
-   const [sellerListings, setSellerListings] = useState<CowListing[]>(MOCK_LISTINGS.filter(l => l.seller_id === user?.id));
-   const [selectedCowForManagement, setSelectedCowForManagement] = useState<CowListing | null>(null);
-   const [selectedCowForSold, setSelectedCowForSold] = useState<CowListing | null>(null);
+   const [sellerListings, setSellerListings] = useState<any[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+   const [selectedCowForManagement, setSelectedCowForManagement] = useState<any | null>(null);
+   const [selectedCowForSold, setSelectedCowForSold] = useState<any | null>(null);
    const [soldFeedback, setSoldFeedback] = useState('');
    const [buyerRating, setBuyerRating] = useState(0);
    const [nudgeBuyer, setNudgeBuyer] = useState(false);
+
+   useEffect(() => {
+      if (user) {
+         fetchSellerListings();
+      }
+   }, [user]);
+
+   const fetchSellerListings = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+         const { data, error } = await getSellerListings(user.id);
+         if (error) throw error;
+         setSellerListings(data || []);
+      } catch (err) {
+         console.error('Error fetching seller listings:', err);
+         setError(err instanceof Error ? err.message : 'Failed to load listings');
+      } finally {
+         setLoading(false);
+      }
+   };
 
    const handleMarkAsSold = () => {
       if (selectedCowForSold) {
@@ -108,68 +133,100 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                         <Link to="/listings" className="text-xs font-bold text-emerald-600 hover:text-emerald-700">Browse Marketplace</Link>
                      </div>
                      <div className="divide-y divide-slate-100">
-                        {sellerListings.map(cow => (
-                           <div
-                              key={cow.id}
-                              onClick={() => setSelectedCowForManagement(cow)}
-                              className="p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 group hover:bg-slate-50 transition-colors cursor-pointer"
-                           >
-                              <div className="flex w-full sm:w-auto items-center gap-4">
-                                 <div className="relative shrink-0">
-                                    <img src={cow.photos[0]} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover" />
-                                    <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-slate-100">
-                                       <div className={`w-3 h-3 rounded-full ${cow.status === 'approved' ? 'bg-emerald-500' :
-                                          cow.status === 'sold' ? 'bg-slate-400' :
-                                             cow.status === 'draft' ? 'bg-slate-300' :
-                                                'bg-amber-500'
-                                          }`}></div>
-                                    </div>
-                                 </div>
-                                 {/* Only visible on mobile, next to image */}
-                                 <div className="sm:hidden flex-grow">
-                                    <h4 className="font-bold text-slate-900 tracking-tight text-base">{cow.breed} • {cow.age}Y</h4>
-                                    <p className="text-sm font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
-                                 </div>
-                              </div>
-
-                              <div className="flex-grow w-full sm:w-auto">
-                                 <div className="hidden sm:flex justify-between items-start mb-1">
-                                    <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight text-lg">{cow.breed} • {cow.age}Y</h4>
-                                    <p className="text-sm font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
-                                 </div>
-                                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 sm:mt-0">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${cow.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                       cow.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                          cow.status === 'sold' ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                             cow.status === 'draft' ? 'bg-slate-50 text-slate-400 border-slate-100' :
-                                                'bg-slate-50 text-slate-500 border-slate-100'
-                                       }`}>
-                                       {cow.status}
-                                    </span>
-                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Peak: {Math.max(...cow.milk_yield_last_7_days)}L</div>
-                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                                       <Eye size={12} /> 124 views
-                                    </div>
-                                 </div>
-                              </div>
-
-                              <div className="flex items-center gap-3 absolute top-4 right-4 sm:static">
-                                 <button
-                                    onClick={(e) => handleEdit(cow.id, e)}
-                                    className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all bg-white sm:bg-transparent shadow-sm sm:shadow-none border sm:border-none border-slate-100"
-                                    title="Edit Details"
-                                 >
-                                    <Edit3 size={18} />
-                                 </button>
-                                 <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600 hidden sm:block" />
-                              </div>
+                        {loading ? (
+                           <div className="p-12 text-center">
+                              <Loader2 size={32} className="animate-spin text-emerald-600 mx-auto mb-4" />
+                              <p className="text-slate-500 font-medium font-serif">Updating your livestock feed...</p>
                            </div>
-                        ))}
+                        ) : sellerListings.length > 0 ? (
+                           sellerListings.map(cow => {
+                              // Correctly map media from Supabase array
+                              const photo = cow.media?.find((m: any) => m.media_type === 'photo')?.media_url || '/placeholder-cow.jpg';
+
+                              // Peak yield calculation
+                              const yields = [
+                                 cow.milk_yield_day_1 || 0,
+                                 cow.milk_yield_day_2 || 0,
+                                 cow.milk_yield_day_3 || 0,
+                                 cow.milk_yield_day_4 || 0,
+                                 cow.milk_yield_day_5 || 0,
+                                 cow.milk_yield_day_6 || 0,
+                                 cow.milk_yield_day_7 || 0,
+                              ];
+                              const peakYield = Math.max(...yields);
+
+                              return (
+                                 <div
+                                    key={cow.id}
+                                    onClick={() => setSelectedCowForManagement(cow)}
+                                    className="p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 group hover:bg-slate-50 transition-colors cursor-pointer relative"
+                                 >
+                                    <div className="flex w-full sm:w-auto items-center gap-4">
+                                       <div className="relative shrink-0">
+                                          <img src={photo} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover" />
+                                          <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-slate-100">
+                                             <div className={`w-3 h-3 rounded-full ${cow.status === 'approved' ? 'bg-emerald-500' :
+                                                cow.status === 'sold' ? 'bg-slate-400' :
+                                                   cow.status === 'draft' ? 'bg-slate-300' :
+                                                      'bg-amber-500'
+                                                }`}></div>
+                                          </div>
+                                       </div>
+                                       <div className="sm:hidden flex-grow">
+                                          <h4 className="font-bold text-slate-900 tracking-tight text-base font-serif">{cow.breed} • {cow.age}Y</h4>
+                                          <p className="text-sm font-bold text-slate-900">KSh {cow.price?.toLocaleString() || '0'}</p>
+                                       </div>
+                                    </div>
+
+                                    <div className="flex-grow w-full sm:w-auto">
+                                       <div className="hidden sm:flex justify-between items-start mb-1">
+                                          <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors tracking-tight text-lg font-serif">{cow.breed} • {cow.age}Y</h4>
+                                          <p className="text-sm font-bold text-slate-900">KSh {cow.price?.toLocaleString() || '0'}</p>
+                                       </div>
+                                       <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 sm:mt-0">
+                                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${cow.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                             cow.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                cow.status === 'sold' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                   cow.status === 'draft' ? 'bg-slate-50 text-slate-400 border-slate-100' :
+                                                      'bg-slate-50 text-slate-500 border-slate-100'
+                                             }`}>
+                                             {cow.status}
+                                          </span>
+                                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Peak: {peakYield}L</div>
+                                          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                                             <Eye size={12} /> {cow.view_count || 0} views
+                                          </div>
+                                       </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 absolute top-4 right-4 sm:static">
+                                       <button
+                                          onClick={(e) => handleEdit(cow.id, e)}
+                                          className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                          title="Edit Listing"
+                                       >
+                                          <Edit3 size={18} />
+                                       </button>
+                                       <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600 hidden sm:block" />
+                                    </div>
+                                 </div>
+                              );
+                           })
+                        ) : (
+                           <div className="p-12 text-center">
+                              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                 <ShoppingBag size={24} className="text-slate-300" />
+                              </div>
+                              <p className="text-slate-500 font-medium">You haven't listed any cattle yet.</p>
+                              <Link to="/seller/new-listing" className="text-emerald-600 font-bold text-sm hover:underline mt-2 inline-block">Start Selling Now</Link>
+                           </div>
+                        )}
                      </div>
                      <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
                         <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-emerald-600 transition-colors">Load History</button>
                      </div>
                   </div>
+
 
                   {/* Analytics Summary */}
                   <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
@@ -261,16 +318,19 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                   <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 overflow-y-auto custom-scrollbar">
                      <div className="space-y-6">
                         <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-md">
-                           <img src={selectedCowForManagement.photos[0]} className="w-full h-full object-cover" />
+                           <img
+                              src={selectedCowForManagement.media?.find((m: any) => m.media_type === 'photo')?.media_url || '/placeholder-cow.jpg'}
+                              className="w-full h-full object-cover"
+                           />
                         </div>
                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                            <div className="text-center flex-1 border-r border-slate-200">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Views</p>
-                              <p className="text-xl font-black text-slate-900">124</p>
+                              <p className="text-xl font-black text-slate-900">{selectedCowForManagement.view_count || 0}</p>
                            </div>
                            <div className="text-center flex-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Inquiries</p>
-                              <p className="text-xl font-black text-blue-600">8</p>
+                              <p className="text-xl font-black text-blue-600">{selectedCowForManagement.inquiry_count || 0}</p>
                            </div>
                         </div>
                      </div>
@@ -278,13 +338,13 @@ const SellerDashboard: React.FC<DashboardProps> = ({ user }) => {
                      <div className="space-y-6">
                         <div>
                            <h4 className="text-2xl font-black text-slate-900 font-serif mb-1">{selectedCowForManagement.breed}</h4>
-                           <p className="text-sm text-slate-500 flex items-center gap-1 font-medium italic"><Clock size={14} /> Listed {new Date(selectedCowForManagement.createdAt).toLocaleDateString()}</p>
+                           <p className="text-sm text-slate-500 flex items-center gap-1 font-medium italic"><Clock size={14} /> Listed {new Date(selectedCowForManagement.created_at).toLocaleDateString()}</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Current Price</p>
-                              <p className="text-sm font-black text-slate-900">KSh {selectedCowForManagement.price.toLocaleString()}</p>
+                              <p className="text-sm font-black text-slate-900">KSh {selectedCowForManagement.price?.toLocaleString() || '0'}</p>
                            </div>
                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                               <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
