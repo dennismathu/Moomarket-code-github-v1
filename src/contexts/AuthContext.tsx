@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         full_name: fullName,
                         role: role,
                     },
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
                 },
             })
 
