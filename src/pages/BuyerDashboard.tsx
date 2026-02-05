@@ -37,26 +37,29 @@ const BuyerDashboard: React.FC<DashboardProps> = ({ user }) => {
                 <span className="text-xs font-bold text-slate-400">{savedCows.length} Items</span>
               </div>
               <div className="divide-y divide-slate-100">
-                {savedCows.map(cow => (
-                  <Link key={cow.id} to={`/listing/${cow.id}`} className="p-6 flex items-center gap-6 hover:bg-slate-50 transition-colors group">
-                    <img src={cow.photos[0]} className="w-24 h-24 rounded-2xl object-cover" />
-                    <div className="flex-grow">
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">{cow.breed} • {cow.age}Y</h4>
-                        <p className="font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
+                {savedCows.map(cow => {
+                  const photo = cow.media?.find((m: any) => m.media_type === 'photo')?.media_url || '/placeholder-cow.jpg';
+                  return (
+                    <Link key={cow.id} to={`/listing/${cow.id}`} className="p-6 flex items-center gap-6 hover:bg-slate-50 transition-colors group">
+                      <img src={photo} className="w-24 h-24 rounded-2xl object-cover" />
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">{cow.breed} • {cow.age}Y</h4>
+                          <p className="font-bold text-slate-900">KSh {cow.price.toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-3 text-slate-500 mb-2">
+                          <MapPin size={12} />
+                          <span className="text-xs">{cow.specific_location || cow.county}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest border border-emerald-100">Verified</span>
+                          <span className="text-[10px] text-slate-400">Added 2 days ago</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-slate-500 mb-2">
-                        <MapPin size={12} />
-                        <span className="text-xs">{cow.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest border border-emerald-100">Verified</span>
-                        <span className="text-[10px] text-slate-400">Added 2 days ago</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600" />
-                  </Link>
-                ))}
+                      <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600" />
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -92,6 +95,26 @@ const BuyerDashboard: React.FC<DashboardProps> = ({ user }) => {
               </div>
               <Shield size={80} className="absolute -bottom-6 -right-6 text-slate-800" />
             </div>
+
+            {/* Seller Promo */}
+            {user?.role === 'buyer' && (
+              <div className="bg-emerald-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-2 py-1 bg-white/20 rounded text-[10px] font-bold uppercase tracking-widest mb-4">New Opportunity</div>
+                  <h4 className="text-xl font-bold mb-3 tracking-tight">Turn your cattle into cash</h4>
+                  <p className="text-sm text-emerald-50 text-emerald-50/80 mb-6 leading-relaxed">
+                    Join 500+ verified Kenyan dairy farmers selling directly to buyers on MooMarket.
+                  </p>
+                  <Link
+                    to="/seller/onboarding"
+                    className="w-full py-3 bg-white text-emerald-600 font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-emerald-50 transition-all shadow-lg shadow-emerald-900/20"
+                  >
+                    Start Selling <ChevronRight size={18} />
+                  </Link>
+                </div>
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+              </div>
+            )}
           </div>
         </div>
       </div>

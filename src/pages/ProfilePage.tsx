@@ -114,6 +114,23 @@ export default function ProfilePage() {
                                     <span className="text-sm">{user.phone_number || 'Phone not set'}</span>
                                 </div>
                             </div>
+
+                            {user.role === 'buyer' && (
+                                <div className="mt-8 pt-6 border-t border-slate-100">
+                                    <div className="bg-emerald-50 rounded-2xl p-6 text-left border border-emerald-100">
+                                        <h4 className="text-sm font-bold text-emerald-900 mb-2">Sell on MooMarket</h4>
+                                        <p className="text-xs text-emerald-700 mb-4 leading-relaxed">
+                                            Want to list your cattle? Become a verified seller today.
+                                        </p>
+                                        <Link
+                                            to="/seller/onboarding"
+                                            className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all"
+                                        >
+                                            Start Verification <ArrowRight size={14} />
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

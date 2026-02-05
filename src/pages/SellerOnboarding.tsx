@@ -84,8 +84,12 @@ const SellerOnboarding: React.FC = () => {
       });
       if (sellerError) throw sellerError;
 
-      // Update user is_id_verified to false (pending)
-      await updateProfile({ is_id_verified: false });
+      // Update user role to seller and is_id_verified to false (pending)
+      const { error: profileUpdateError } = await updateProfile({
+        is_id_verified: false,
+        role: 'seller'
+      });
+      if (profileUpdateError) throw profileUpdateError;
 
       await refreshUser();
       setStep(3);

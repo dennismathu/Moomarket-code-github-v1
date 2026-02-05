@@ -279,8 +279,22 @@ const ListingDetail: React.FC = () => {
               <div className="flex items-center gap-2 text-slate-500 mb-6"><MapPin size={16} /><span className="text-sm">{cow.specific_location}, {cow.county}</span></div>
               <div className="text-4xl font-black text-slate-900 mb-8">KSh {cow.price?.toLocaleString() || '0'}</div>
               <div className="space-y-4 mb-8">
-                <button onClick={() => setShowInspectionModal(true)} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center justify-center gap-3"><CalendarDays size={20} /> Request Inspection</button>
-                <button className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 flex items-center justify-center gap-3"><MessageSquare size={20} /> Message Seller</button>
+                {user?.id === cow.seller_id ? (
+                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center">
+                    <p className="text-sm font-bold text-slate-900 mb-3">This is your listing</p>
+                    <Link
+                      to="/dashboard/seller"
+                      className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all"
+                    >
+                      <LayoutDashboard size={18} /> Manage in Dashboard
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={() => setShowInspectionModal(true)} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center justify-center gap-3"><CalendarDays size={20} /> Request Inspection</button>
+                    <button className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 flex items-center justify-center gap-3"><MessageSquare size={20} /> Message Seller</button>
+                  </>
+                )}
 
                 {/* Premium Features Section */}
                 <div className="mt-8 pt-8 border-t border-slate-100 space-y-6">
