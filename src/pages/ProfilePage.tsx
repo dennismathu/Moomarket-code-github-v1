@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { User, ChevronLeft, Save, MapPin, Phone, User as UserIcon, CheckCircle2 } from 'lucide-react'
+import { User, ChevronLeft, Save, MapPin, Phone, User as UserIcon, CheckCircle2, ArrowRight, LayoutDashboard, ShoppingBag } from 'lucide-react'
 
 const COUNTIES = [
     'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo Marakwet', 'Embu', 'Garissa', 'Homa Bay',
@@ -35,6 +35,15 @@ export default function ProfilePage() {
             })
         }
     }, [user])
+
+    const isDirty = user ? (
+        formData.full_name !== (user.full_name || '') ||
+        formData.phone_number !== (user.phone_number || '') ||
+        formData.county !== (user.county || '') ||
+        formData.specific_location !== (user.specific_location || '')
+    ) : false;
+
+    const hasProfile = user?.phone_number && user?.county;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -194,24 +203,55 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                <div className="pt-4">
+                                {isDirty && !success && (
+                                    <p className="text-xs text-amber-600 font-medium mb-4 animate-pulse flex items-center gap-1">
+                                        You have unsaved changes
+                                    </p>
+                                )}
+
+                                <div className="flex flex-wrap gap-4 pt-4">
                                     <button
                                         type="submit"
-                                        disabled={loading}
-                                        className="w-full sm:w-auto px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        disabled={loading || !isDirty}
+                                        className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[160px]"
                                     >
                                         {loading ? (
                                             <>
                                                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
                                                 Saving...
                                             </>
+                                        ) : success ? (
+                                            <>
+                                                <CheckCircle2 size={20} />
+                                                Saved!
+                                            </>
                                         ) : (
                                             <>
                                                 <Save size={20} />
-                                                Save Profile
+                                                {hasProfile ? 'Update Profile' : 'Save Profile'}
                                             </>
                                         )}
                                     </button>
+
+                                    {success && (
+                                        <div className="contents animate-in fade-in slide-in-from-left-4 duration-500">
+                                            <Link
+                                                to="/listings"
+                                                className="px-6 py-4 bg-white text-emerald-600 font-bold rounded-xl border-2 border-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-2"
+                                            >
+                                                <ShoppingBag size={20} />
+                                                Browse Marketplace
+                                            </Link>
+                                            <Link
+                                                to={user.role === 'seller' ? '/dashboard/seller' : '/dashboard/buyer'}
+                                                className="px-6 py-4 bg-white text-slate-600 font-bold rounded-xl border-2 border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                                            >
+                                                <LayoutDashboard size={20} />
+                                                Go to Dashboard
+                                                <ArrowRight size={18} />
+                                            </Link>
+                                        </div>
+                                    )}
                                 </div>
                             </form>
                         </div>
