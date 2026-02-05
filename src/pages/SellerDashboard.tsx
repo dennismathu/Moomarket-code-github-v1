@@ -7,7 +7,7 @@ import {
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
    Trash2, BellRing, Info, X, Droplets, Baby, Loader2
 } from 'lucide-react';
-import { getSellerListings } from '../lib/database';
+import { getSellerListings, deleteListing as deleteListingFromDb } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 import { User, CowListing } from '../types/types';
 
@@ -26,6 +26,45 @@ const SellerDashboard: React.FC = () => {
    const [soldFeedback, setSoldFeedback] = useState('');
    const [buyerRating, setBuyerRating] = useState(0);
    const [nudgeBuyer, setNudgeBuyer] = useState(false);
+   const [isDeleting, setIsDeleting] = useState(false);
+
+   const trustTips = [
+      "Complete your profile to increase buyer trust by 40%.",
+      "Verified sellers sell their cows 2x faster than unverified ones.",
+      "Clear, high-quality photos can double your listing's view count.",
+      "Providing a detailed health history encourages faster buyer decisions.",
+      "Accurate milk yield data is the #1 factor for serious buyers."
+   ];
+   const [tipIndex, setTipIndex] = useState(0);
+
+   useEffect(() => {
+      const interval = setInterval(() => {
+         setTipIndex(prev => (prev + 1) % trustTips.length);
+      }, 10000); // Rotate tip every 10 seconds
+      return () => clearInterval(interval);
+   }, []);
+
+   const calculateProfileStrength = () => {
+      if (!user) return 0;
+      let score = 0;
+      const weights = {
+         fullName: 10,
+         phoneNumber: 20,
+         county: 20,
+         specificLocation: 10,
+         idVerified: 40
+      };
+
+      if (user.full_name) score += weights.fullName;
+      if (user.phone_number) score += weights.phoneNumber;
+      if (user.county) score += weights.county;
+      if (user.specific_location) score += weights.specificLocation;
+      if (user.is_id_verified) score += weights.idVerified;
+
+      return score;
+   };
+
+   const profileStrength = calculateProfileStrength();
 
    useEffect(() => {
       if (user) {
@@ -48,21 +87,27 @@ const SellerDashboard: React.FC = () => {
       }
    };
 
-   const handleMarkAsSold = () => {
-      if (selectedCowForSold) {
-         setSellerListings(prev => prev.map(c => c.id === selectedCowForSold.id ? { ...c, status: 'sold' } : c));
-         setSelectedCowForSold(null);
-         setSelectedCowForManagement(null);
-         setSoldFeedback('');
-         setBuyerRating(0);
-         setNudgeBuyer(false);
-         // Logic for nudging buyer (e.g., API call) would go here
-      }
-   };
-
    const handleEdit = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
       navigate(`/seller/new-listing?edit=${id}`);
+   };
+
+   const handleDelete = async (id: string) => {
+      if (!window.confirm("Are you sure you want to delete this listing? This action cannot be undone.")) return;
+
+      setIsDeleting(true);
+      try {
+         const { error } = await deleteListingFromDb(id);
+         if (error) throw error;
+
+         setSellerListings(prev => prev.filter(c => c.id !== id));
+         setSelectedCowForManagement(null);
+      } catch (err) {
+         console.error('Error deleting listing:', err);
+         alert('Failed to delete listing. Please try again.');
+      } finally {
+         setIsDeleting(false);
+      }
    };
 
    return (
@@ -257,26 +302,56 @@ const SellerDashboard: React.FC = () => {
                   <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                      <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                         <h3 className="font-bold text-slate-900">Profile Strength</h3>
-                        <Award size={18} className="text-emerald-600" />
+                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${profileStrength >= 80 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                           {profileStrength >= 80 ? 'Strong' : 'Improve'}
+                        </div>
                      </div>
                      <div className="p-6 space-y-4">
                         <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
-                           <span>Farmer Tier: Verified</span>
-                           <span className="text-emerald-600 font-black">80%</span>
+                           <span>Progress</span>
+                           <span className={`${profileStrength >= 80 ? 'text-emerald-600' : 'text-amber-600'} font-black`}>{profileStrength}%</span>
                         </div>
                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                           <div className="w-[80%] h-full bg-emerald-600"></div>
+                           <div
+                              className={`h-full transition-all duration-1000 ${profileStrength >= 80 ? 'bg-emerald-600' : 'bg-amber-500'}`}
+                              style={{ width: `${profileStrength}%` }}
+                           ></div>
                         </div>
-                        <div className="pt-4 space-y-3">
+
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mt-4">
+                           <div className="flex items-start gap-3">
+                              <Info size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Trust Tip</p>
+                                 <p className="text-xs font-medium text-slate-600 leading-relaxed italic animate-in fade-in duration-700">
+                                    "{trustTips[tipIndex]}"
+                                 </p>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="pt-2 space-y-3">
                            <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
-                              <CheckCircle size={14} className="text-emerald-600" /> Phone & ID Verified
+                              {user?.is_phone_verified && user?.is_id_verified ? (
+                                 <CheckCircle size={14} className="text-emerald-600" />
+                              ) : (
+                                 <X size={14} className="text-slate-300" />
+                              )}
+                              Phone & ID Verified
                            </div>
                            <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
-                              <CheckCircle size={14} className="text-emerald-600" /> Farm Location Linked
+                              {user?.county ? (
+                                 <CheckCircle size={14} className="text-emerald-600" />
+                              ) : (
+                                 <X size={14} className="text-slate-300" />
+                              )}
+                              Farm Location Linked
                            </div>
-                           <div className="flex items-center gap-3 text-xs font-medium text-slate-400 italic">
-                              <Plus size={14} /> Add 360° Farm View
-                           </div>
+                           {!user?.is_id_verified && (
+                              <Link to="/seller/onboarding" className="flex items-center gap-3 text-xs font-bold text-emerald-600 hover:text-emerald-700">
+                                 <Plus size={14} /> Verify Your Identity
+                              </Link>
+                           )}
                         </div>
                      </div>
                   </div>

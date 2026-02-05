@@ -313,7 +313,7 @@ export default function Marketplace() {
                       <div className={`relative ${viewMode === 'list' ? 'sm:w-64 h-48 sm:h-full' : 'h-52'}`}>
                         <img src={photo} alt={listing.breed} className="w-full h-full object-cover" />
                         <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md text-white rounded-lg text-xs font-bold border border-white/20">
-                          {listing.specific_location}, {listing.county}
+                          {listing.county}
                         </div>
                       </div>
                       <div className="p-5 flex flex-col justify-between flex-grow">
