@@ -65,6 +65,8 @@ export interface User {
   is_email_verified: boolean;
   is_id_verified: boolean;
   avatar_url: string | null;
+  county: string | null;
+  specific_location: string | null;
   created_at: string;
   updated_at: string;
 }

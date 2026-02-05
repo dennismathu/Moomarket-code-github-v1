@@ -29,7 +29,7 @@ export default function ProfilePage() {
         if (user) {
             setFormData({
                 full_name: user.full_name || '',
-                phone_number: user.phone_number || '',
+                phone_number: user.phone_number || '+254',
                 county: user.county || '',
                 specific_location: user.specific_location || ''
             })

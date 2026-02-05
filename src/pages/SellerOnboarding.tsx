@@ -26,7 +26,7 @@ const SellerOnboarding: React.FC = () => {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        phoneNumber: user.phone_number || '',
+        phoneNumber: user.phone_number || '+254',
         farmName: prev.farmName || ''
       }));
     }
