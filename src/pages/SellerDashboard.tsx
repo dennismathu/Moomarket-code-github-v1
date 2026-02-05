@@ -33,7 +33,12 @@ const SellerDashboard: React.FC = () => {
       "Verified sellers sell their cows 2x faster than unverified ones.",
       "Clear, high-quality photos can double your listing's view count.",
       "Providing a detailed health history encourages faster buyer decisions.",
-      "Accurate milk yield data is the #1 factor for serious buyers."
+      "Accurate milk yield data is the #1 factor for serious buyers.",
+      "Mention if the cow is vaccinated and dewormed to attract premium buyers.",
+      "Responding to inquiries within 1 hour increases your chance of a sale by 60%.",
+      "A video of the cow walking helps buyers assess its health and structure.",
+      "Updated records of daily milk yield build unparalleled trust with dairy farmers.",
+      "Ensure your farm location is accurate so nearby buyers can easily find you."
    ];
    const [tipIndex, setTipIndex] = useState(0);
 
@@ -90,6 +95,17 @@ const SellerDashboard: React.FC = () => {
    const handleEdit = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
       navigate(`/seller/new-listing?edit=${id}`);
+   };
+
+   const handleMarkAsSold = () => {
+      if (selectedCowForSold) {
+         setSellerListings(prev => prev.map(c => c.id === selectedCowForSold.id ? { ...c, status: 'sold' } : c));
+         setSelectedCowForSold(null);
+         setSelectedCowForManagement(null);
+         setSoldFeedback('');
+         setBuyerRating(0);
+         setNudgeBuyer(false);
+      }
    };
 
    const handleDelete = async (id: string) => {
@@ -442,8 +458,17 @@ const SellerDashboard: React.FC = () => {
                                  <CheckCircle2 size={18} /> Mark as Sold
                               </button>
                            )}
-                           <button className="w-full py-3 text-slate-400 text-xs font-bold uppercase tracking-widest hover:text-red-500 flex items-center justify-center gap-2">
-                              <Trash2 size={14} /> Delete Listing
+                           <button
+                              onClick={() => handleDelete(selectedCowForManagement.id)}
+                              disabled={isDeleting}
+                              className="w-full py-3 text-slate-400 text-xs font-bold uppercase tracking-widest hover:text-red-500 flex items-center justify-center gap-2 disabled:opacity-50"
+                           >
+                              {isDeleting ? (
+                                 <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                 <Trash2 size={14} />
+                              )}
+                              Delete Listing
                            </button>
                         </div>
                      </div>
