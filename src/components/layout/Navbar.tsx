@@ -50,12 +50,12 @@ const Navbar = () => {
                                     <span className="text-sm font-bold tracking-tight">Dashboard</span>
                                 </Link>
                                 <div className="h-8 w-[1px] bg-slate-200"></div>
-                                <div className="flex items-center gap-2">
+                                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                                     <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
                                         {user.full_name.charAt(0)}
                                     </div>
                                     <span className="text-sm font-medium text-slate-700">{user.full_name}</span>
-                                </div>
+                                </Link>
                                 <button
                                     onClick={handleSignOut}
                                     className="p-2 text-slate-400 hover:text-red-600 transition-colors"

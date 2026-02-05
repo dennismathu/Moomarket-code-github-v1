@@ -321,6 +321,52 @@ export async function markMessageAsRead(messageId: string) {
 }
 
 // ============================================
+// SELLER PROFILES
+// ============================================
+
+/**
+ * Get seller profile by user ID
+ */
+export async function getSellerProfile(userId: string) {
+    try {
+        const { data, error } = await supabase
+            .from('seller_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle()
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error fetching seller profile:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Create or update seller profile
+ */
+export async function createOrUpdateSellerProfile(userId: string, profile: any) {
+    try {
+        const { data, error } = await supabase
+            .from('seller_profiles')
+            .upsert({
+                user_id: userId,
+                ...profile,
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error creating/updating seller profile:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+// ============================================
 // FILE UPLOADS
 // ============================================
 

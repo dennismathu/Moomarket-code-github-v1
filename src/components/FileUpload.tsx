@@ -10,6 +10,8 @@ interface FileUploadProps {
     initialPreview?: string | null;
     accept?: string;
     label: string;
+    bucket?: 'cow-photos' | 'vet-reports' | 'id-documents';
+    folder?: string;
 }
 
 export function FileUpload({
@@ -19,7 +21,9 @@ export function FileUpload({
     maxSizeMB = 10,
     initialPreview = null,
     accept = 'image/*',
-    label
+    label,
+    bucket = 'cow-photos',
+    folder
 }: FileUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -57,8 +61,9 @@ export function FileUpload({
             let result;
 
             if (type === 'photo') {
-                const path = listingId ? `${listingId}/${filename}` : `temp/${filename}`;
-                result = await uploadImage(file, 'cow-photos', path);
+                const uploadFolder = folder || listingId || 'temp';
+                const path = `${uploadFolder}/${filename}`;
+                result = await uploadImage(file, bucket, path);
             } else {
                 const videoType = type === 'video_walking' ? 'walking' : 'milking';
                 result = await uploadVideo(file, listingId || 'temp', videoType);

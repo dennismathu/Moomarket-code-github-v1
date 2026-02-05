@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle } from 'lucide-react';
-import { getListings } from '../lib/database';
+import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { getListings, getSellerProfile } from '../lib/database';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Listing {
   id: string;
@@ -31,9 +32,11 @@ interface Listing {
 }
 
 export default function Marketplace() {
+  const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showOnboardingNudge, setShowOnboardingNudge] = useState(false);
 
   const [filterBreed, setFilterBreed] = useState<string>('All');
   const [filterCounty, setFilterCounty] = useState<string>('All');
@@ -47,7 +50,18 @@ export default function Marketplace() {
   // Fetch listings on mount
   useEffect(() => {
     fetchListings();
-  }, []);
+    checkOnboardingStatus();
+  }, [user]);
+
+  const checkOnboardingStatus = async () => {
+    if (user?.role === 'seller') {
+      const { data } = await getSellerProfile(user.id);
+      // If no profile or status is still null, show nudge
+      if (!data || !data.verification_status) {
+        setShowOnboardingNudge(true);
+      }
+    }
+  };
 
   const fetchListings = async () => {
     setLoading(true);
@@ -113,6 +127,28 @@ export default function Marketplace() {
               {loading ? 'Loading...' : `Browse ${filteredListings.length} verified dairy cows across Kenya.`}
             </p>
           </div>
+
+          {showOnboardingNudge && (
+            <div className="flex-1 max-w-2xl bg-emerald-600 rounded-2xl p-4 md:p-6 text-white shadow-lg shadow-emerald-100 animate-in fade-in slide-in-from-top-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    < ShieldCheck size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Complete Your Seller Profile</h3>
+                    <p className="text-emerald-100 text-sm">You need to verify your identity before you can list your cows for sale.</p>
+                  </div>
+                </div>
+                <Link
+                  to="/seller/onboarding"
+                  className="inline-flex items-center gap-2 bg-white text-emerald-600 px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors whitespace-nowrap"
+                >
+                  Verify Now <ArrowRight size={18} />
+                </Link>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid size={20} /></button>
             <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}><List size={20} /></button>

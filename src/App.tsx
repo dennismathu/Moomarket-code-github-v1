@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import ProfilePage from './pages/ProfilePage';
 import Marketplace from './pages/Marketplace';
 import ListingDetail from './pages/ListingDetail';
 import SellerOnboarding from './pages/SellerOnboarding';
@@ -36,6 +37,11 @@ const App: React.FC = () => {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
               <Route path="/listings" element={<Marketplace />} />
               <Route path="/listing/:id" element={<ListingDetail />} />
 

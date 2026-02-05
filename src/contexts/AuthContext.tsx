@@ -12,6 +12,7 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>
     resetPassword: (email: string) => Promise<{ error: Error | null }>
     updatePassword: (password: string) => Promise<{ error: Error | null }>
+    updateProfile: (updates: Partial<User>) => Promise<{ error: Error | null }>
     signOut: () => Promise<void>
     refreshUser: () => Promise<void>
 }
@@ -25,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true)
 
     // Fetch user profile from public.users table
-    const fetchUserProfile = async (userId: string) => {
+    const fetchUserProfile = async (userId: string, authUser?: SupabaseUser) => {
         try {
             console.log('Fetching profile for user:', userId);
             const { data, error } = await supabase
@@ -41,6 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (!data) {
                 console.warn('No profile found in users table for ID:', userId);
+                // Return fallback profile from auth metadata if available
+                if (authUser) {
+                    console.log('Using fallback profile from auth metadata');
+                    return {
+                        id: userId,
+                        email: authUser.email!,
+                        full_name: authUser.user_metadata?.full_name || 'User',
+                        role: authUser.user_metadata?.role || 'buyer',
+                        created_at: authUser.created_at,
+                        is_phone_verified: false,
+                        is_id_verified: false
+                    } as User;
+                }
                 return null;
             }
 
@@ -57,10 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session)
-            setSupabaseUser(session?.user ?? null)
+            const currentSupabaseUser = session?.user ?? null;
+            setSupabaseUser(currentSupabaseUser)
 
-            if (session?.user) {
-                fetchUserProfile(session.user.id).then(setUser)
+            if (currentSupabaseUser) {
+                fetchUserProfile(currentSupabaseUser.id, currentSupabaseUser).then(setUser)
             }
             setLoading(false)
         })
@@ -70,10 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session)
-            setSupabaseUser(session?.user ?? null)
+            const currentSupabaseUser = session?.user ?? null;
+            setSupabaseUser(currentSupabaseUser)
 
-            if (session?.user) {
-                fetchUserProfile(session.user.id).then(setUser)
+            if (currentSupabaseUser) {
+                fetchUserProfile(currentSupabaseUser.id, currentSupabaseUser).then(setUser)
             } else {
                 setUser(null)
             }
@@ -188,6 +204,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null)
     }
 
+    // Update profile
+    const updateProfile = async (updates: Partial<User>) => {
+        try {
+            if (!supabaseUser) throw new Error('No user logged in');
+
+            console.log('Attempting profile update for:', supabaseUser.id, updates);
+            const { error } = await supabase
+                .from('users')
+                .update(updates)
+                .eq('id', supabaseUser.id);
+
+            if (error) {
+                console.error('Supabase updateProfile error details:', error);
+                throw error;
+            }
+
+            console.log('Supabase updateProfile success');
+            await refreshUser();
+            return { error: null }
+        } catch (error) {
+            console.error('Catch updateProfile error:', error);
+            return { error: error as Error }
+        }
+    }
+
     // Refresh user profile
     const refreshUser = async () => {
         if (supabaseUser) {
@@ -205,6 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         resetPassword,
         updatePassword,
+        updateProfile,
         signOut,
         refreshUser,
     }
