@@ -79,7 +79,7 @@ export async function getListingById(id: string) {
             is_id_verified,
             seller_profile:seller_profiles!user_id(farm_name, rating, verification_status)
         ),
-        media:listing_media(media_url, media_type, display_order),
+        media:listing_media(media_url, media_type, display_order, storage_path),
         vet:vet_verifications(*)
       `)
             .eq('id', id)
@@ -461,5 +461,23 @@ export async function addListingMedia(
     } catch (error) {
         console.error('Error adding listing media:', error)
         return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Delete all media for a listing
+ */
+export async function deleteListingMedia(listingId: string) {
+    try {
+        const { error } = await supabase
+            .from('listing_media')
+            .delete()
+            .eq('listing_id', listingId)
+
+        if (error) throw error
+        return { error: null }
+    } catch (error) {
+        console.error('Error deleting listing media:', error)
+        return { error: error as Error }
     }
 }

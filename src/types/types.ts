@@ -44,6 +44,9 @@ export interface CowListing {
   save_count: number;
   created_at: string;
   updated_at: string;
+  // Join fields or Mock fields
+  media?: { media_url: string; media_type: string }[];
+  photos?: string[];
 }
 
 export interface InspectionRequest {

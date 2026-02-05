@@ -5,9 +5,9 @@ import {
    ShoppingBag, MessageSquare, Calendar, ChevronRight, CheckCircle,
    Clock, Plus, ShieldCheck, Eye, TrendingUp, Award, Settings,
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
-   Trash2, BellRing, Info, X, Droplets, Baby, Loader2
+   Trash2, BellRing, Info, X, Droplets, Baby, Loader2, Bookmark, MapPin
 } from 'lucide-react';
-import { getSellerListings, deleteListing as deleteListingFromDb } from '../lib/database';
+import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 import { User, CowListing } from '../types/types';
 
@@ -27,6 +27,8 @@ const SellerDashboard: React.FC = () => {
    const [buyerRating, setBuyerRating] = useState(0);
    const [nudgeBuyer, setNudgeBuyer] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
+   const [savedCows, setSavedCows] = useState<any[]>([]);
+   const [savedLoading, setSavedLoading] = useState(true);
 
    const trustTips = [
       "Complete your profile to increase buyer trust by 40%.",
@@ -74,8 +76,22 @@ const SellerDashboard: React.FC = () => {
    useEffect(() => {
       if (user) {
          fetchSellerListings();
+         fetchSavedListings();
       }
    }, [user]);
+
+   const fetchSavedListings = async () => {
+      if (!user) return;
+      try {
+         const { data, error } = await getSavedListings(user.id);
+         if (error) throw error;
+         setSavedCows(data?.map((item: any) => item.listing) || []);
+      } catch (err) {
+         console.error('Error fetching saved listings:', err);
+      } finally {
+         setSavedLoading(false);
+      }
+   };
 
    const fetchSellerListings = async () => {
       if (!user) return;
@@ -309,6 +325,51 @@ const SellerDashboard: React.FC = () => {
                            <p className="text-xl font-bold text-slate-800">KSh 210k - 260k</p>
                            <p className="text-xs text-slate-500 mt-1">Average for Friesian Parity 2</p>
                         </div>
+                     </div>
+                  </div>
+
+
+                  {/* Saved Listings Section */}
+                  <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                           <Bookmark size={20} className="text-emerald-600" />
+                           Your Saved Cattle
+                        </h3>
+                        <span className="text-xs font-bold text-slate-400">{savedCows.length} Items</span>
+                     </div>
+                     <div className="divide-y divide-slate-100">
+                        {savedLoading ? (
+                           <div className="p-12 text-center">
+                              <Loader2 size={24} className="animate-spin text-emerald-600 mx-auto mb-2" />
+                              <p className="text-xs text-slate-500">Loading favorites...</p>
+                           </div>
+                        ) : savedCows.length === 0 ? (
+                           <div className="p-12 text-center">
+                              <p className="text-sm text-slate-400 mb-4">You haven't saved any cows yet.</p>
+                              <Link to="/listings" className="text-emerald-600 font-bold text-xs hover:underline">Browse Marketplace</Link>
+                           </div>
+                        ) : (
+                           savedCows.map(cow => {
+                              const photo = cow.media?.find((m: any) => m.media_type === 'photo')?.media_url || '/placeholder-cow.jpg';
+                              return (
+                                 <Link key={cow.id} to={`/listing/${cow.id}`} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors group">
+                                    <img src={photo} className="w-16 h-16 rounded-xl object-cover" />
+                                    <div className="flex-grow">
+                                       <div className="flex justify-between items-start">
+                                          <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors text-sm">{cow.breed} • {cow.age}Y</h4>
+                                          <p className="font-bold text-slate-900 text-sm">KSh {cow.price?.toLocaleString()}</p>
+                                       </div>
+                                       <div className="flex items-center gap-2 text-slate-400 mt-1">
+                                          <MapPin size={12} />
+                                          <span className="text-[10px]">{cow.county}</span>
+                                       </div>
+                                    </div>
+                                    <ChevronRight size={18} className="text-slate-300 group-hover:text-emerald-600" />
+                                 </Link>
+                              );
+                           })
+                        )}
                      </div>
                   </div>
                </div>

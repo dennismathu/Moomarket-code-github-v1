@@ -6,6 +6,7 @@ interface FileUploadProps {
     type: 'photo' | 'video_walking' | 'video_milking';
     listingId?: string;
     onUploadComplete: (url: string, path: string) => void;
+    onRemove?: () => void;
     maxSizeMB?: number;
     initialPreview?: string | null;
     accept?: string;
@@ -18,6 +19,7 @@ export function FileUpload({
     type,
     listingId,
     onUploadComplete,
+    onRemove,
     maxSizeMB = 10,
     initialPreview = null,
     accept = 'image/*',
@@ -88,6 +90,9 @@ export function FileUpload({
         setError(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
+        }
+        if (onRemove) {
+            onRemove();
         }
     };
 

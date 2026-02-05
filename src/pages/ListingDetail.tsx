@@ -1,20 +1,65 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { BadgeCheck, Calendar, MapPin, ShieldCheck, Heart, Share2, ArrowLeft, MessageSquare, CalendarDays, Check, Info, AlertTriangle, Truck, Play, X, Baby, Smartphone, Droplets, Phone, Lock, Zap, Loader2, Video } from 'lucide-react';
-import { getListingById } from '../lib/database';
+import { BadgeCheck, Calendar, MapPin, ShieldCheck, Heart, Share2, ArrowLeft, MessageSquare, CalendarDays, Check, Info, AlertTriangle, Truck, Play, X, Baby, Smartphone, Droplets, Phone, Lock, Zap, Loader2, Video, LayoutDashboard } from 'lucide-react';
+import { getListingById, saveListing, unsaveListing } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const ListingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     fetchListing();
-  }, [id]);
+    if (user && id) {
+      checkIfSaved();
+    }
+  }, [id, user]);
+
+  const checkIfSaved = async () => {
+    try {
+      const { data } = await supabase
+        .from('saved_listings')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('listing_id', id!)
+        .maybeSingle();
+
+      setIsSaved(!!data);
+    } catch (err) {
+      console.error('Error checking save status:', err);
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!user) {
+      alert("Please login to save listings");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        const { error } = await unsaveListing(user.id, id!);
+        if (error) throw error;
+        setIsSaved(false);
+      } else {
+        const { error } = await saveListing(user.id, id!);
+        if (error) throw error;
+        setIsSaved(true);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to update favorites");
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [showDeliveryTooltip, setShowDeliveryTooltip] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -275,8 +320,27 @@ const ListingDetail: React.FC = () => {
 
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white rounded-3xl p-8 shadow-lg border border-slate-200 sticky top-24">
-              <h1 className="text-3xl font-extrabold text-slate-900 mb-2 font-serif">{cow.breed}</h1>
-              <div className="flex items-center gap-2 text-slate-500 mb-6"><MapPin size={16} /><span className="text-sm">{cow.specific_location}, {cow.county}</span></div>
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-3xl font-extrabold text-slate-900 font-serif">{cow.breed}</h1>
+                <div className="flex gap-2">
+                  {user?.id !== cow.seller_id && (
+                    <button
+                      onClick={handleToggleSave}
+                      disabled={isSaving}
+                      className={`p-3 rounded-2xl border transition-all ${isSaved
+                        ? 'bg-red-50 border-red-100 text-red-500'
+                        : 'bg-white border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'
+                        }`}
+                    >
+                      <Heart size={20} fill={isSaved ? "currentColor" : "none"} className={isSaving ? 'opacity-50' : ''} />
+                    </button>
+                  )}
+                  <button className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-blue-500 hover:border-blue-100 hover:bg-blue-50 transition-all">
+                    <Share2 size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-slate-500 mb-6"><MapPin size={16} /><span className="text-sm">{cow.specific_location || cow.county}, {cow.county}</span></div>
               <div className="text-4xl font-black text-slate-900 mb-8">KSh {cow.price?.toLocaleString() || '0'}</div>
               <div className="space-y-4 mb-8">
                 {user?.id === cow.seller_id ? (

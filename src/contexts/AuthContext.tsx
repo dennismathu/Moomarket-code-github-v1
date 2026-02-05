@@ -52,18 +52,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (!data) {
                 console.warn('No profile found in users table for ID:', userId);
-                // Return fallback profile from auth metadata if available
+
+                // CRITICAL FIX: If user exists in Auth but not in public.users, 
+                // it means the trigger might have failed. Let's try to create it here.
                 if (authUser) {
-                    console.log('Using fallback profile from auth metadata');
-                    return {
-                        id: userId,
-                        email: authUser.email!,
-                        full_name: authUser.user_metadata?.full_name || 'User',
-                        role: authUser.user_metadata?.role || 'buyer',
-                        created_at: authUser.created_at,
-                        is_phone_verified: false,
-                        is_id_verified: false
-                    } as User;
+                    console.log('Attempting to create missing profile from frontend...');
+                    const { data: newData, error: insertError } = await supabase
+                        .from('users')
+                        .insert({
+                            id: userId,
+                            email: authUser.email!,
+                            full_name: authUser.user_metadata?.full_name || 'User',
+                            role: authUser.user_metadata?.role || 'buyer'
+                        })
+                        .select()
+                        .maybeSingle();
+
+                    if (insertError) {
+                        console.error('Failed to create missing profile:', insertError);
+                        // Return fallback profile from auth metadata as a last resort
+                        return {
+                            id: userId,
+                            email: authUser.email!,
+                            full_name: authUser.user_metadata?.full_name || 'User',
+                            role: authUser.user_metadata?.role || 'buyer',
+                            created_at: authUser.created_at,
+                            is_phone_verified: false,
+                            is_id_verified: false
+                        } as User;
+                    }
+                    return newData as User;
                 }
                 return null;
             }
