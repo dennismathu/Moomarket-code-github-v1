@@ -84,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign up new user
     const signUp = async (email: string, password: string, fullName: string, role: 'buyer' | 'seller') => {
         try {
+            console.log('Attempting signUp for:', email, 'as', role);
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -92,14 +93,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         full_name: fullName,
                         role: role,
                     },
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                    emailRedirectTo: window.location.origin,
                 },
             })
 
-            if (error) throw error
+            if (error) {
+                console.error('Supabase signUp error details:', error);
+                throw error;
+            }
 
+            console.log('Supabase signUp success, data:', data);
             return { error: null }
         } catch (error) {
+            console.error('Catch signUp error:', error);
             return { error: error as Error }
         }
     }
@@ -107,15 +113,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign in existing user
     const signIn = async (email: string, password: string) => {
         try {
+            console.log('Attempting signIn for:', email);
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
-            if (error) throw error
+            if (error) {
+                console.error('Supabase signIn error details:', error);
+                throw error;
+            }
 
+            console.log('Supabase signIn success, data:', data);
             return { error: null }
         } catch (error) {
+            console.error('Catch signIn error:', error);
             return { error: error as Error }
         }
     }
