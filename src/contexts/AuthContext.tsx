@@ -10,6 +10,8 @@ interface AuthContextType {
     loading: boolean
     signUp: (email: string, password: string, fullName: string, role: 'buyer' | 'seller') => Promise<{ error: Error | null }>
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+    resetPassword: (email: string) => Promise<{ error: Error | null }>
+    updatePassword: (password: string) => Promise<{ error: Error | null }>
     signOut: () => Promise<void>
     refreshUser: () => Promise<void>
 }
@@ -135,6 +137,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    // Reset password
+    const resetPassword = async (email: string) => {
+        try {
+            console.log('Attempting password reset for:', email);
+            const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${siteUrl}/reset-password`,
+            })
+
+            if (error) {
+                console.error('Supabase resetPassword error details:', error);
+                throw error;
+            }
+
+            console.log('Supabase resetPassword success');
+            return { error: null }
+        } catch (error) {
+            console.error('Catch resetPassword error:', error);
+            return { error: error as Error }
+        }
+    }
+
+    // Update password
+    const updatePassword = async (password: string) => {
+        try {
+            console.log('Attempting password update');
+            const { error } = await supabase.auth.updateUser({
+                password: password
+            })
+
+            if (error) {
+                console.error('Supabase updatePassword error details:', error);
+                throw error;
+            }
+
+            console.log('Supabase updatePassword success');
+            return { error: null }
+        } catch (error) {
+            console.error('Catch updatePassword error:', error);
+            return { error: error as Error }
+        }
+    }
+
     // Sign out
     const signOut = async () => {
         await supabase.auth.signOut()
@@ -158,6 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signUp,
         signIn,
+        resetPassword,
+        updatePassword,
         signOut,
         refreshUser,
     }

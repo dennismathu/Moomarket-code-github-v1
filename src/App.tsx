@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -10,6 +10,8 @@ import ScrollToTop from './components/layout/ScrollToTop';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Marketplace from './pages/Marketplace';
 import ListingDetail from './pages/ListingDetail';
 import SellerOnboarding from './pages/SellerOnboarding';
@@ -32,6 +34,8 @@ const App: React.FC = () => {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/listings" element={<Marketplace />} />
               <Route path="/listing/:id" element={<ListingDetail />} />
 

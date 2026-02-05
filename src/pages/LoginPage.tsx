@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -71,6 +71,14 @@ export default function LoginPage() {
                                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                                 placeholder="••••••••"
                             />
+                            <div className="flex justify-end mt-2">
+                                <Link
+                                    to="/forgot-password"
+                                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                                >
+                                    Forgot password?
+                                </Link>
+                            </div>
                         </div>
 
                         <button
