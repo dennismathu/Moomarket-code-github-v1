@@ -85,6 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signUp = async (email: string, password: string, fullName: string, role: 'buyer' | 'seller') => {
         try {
             console.log('Attempting signUp for:', email, 'as', role);
+            const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+            console.log('Redirecting to:', siteUrl);
+
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -93,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         full_name: fullName,
                         role: role,
                     },
-                    emailRedirectTo: window.location.origin,
+                    emailRedirectTo: siteUrl,
                 },
             })
 
