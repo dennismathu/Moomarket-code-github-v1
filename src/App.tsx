@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import ScrollToTop from './components/layout/ScrollToTop';
@@ -21,11 +22,33 @@ import SellerDashboard from './pages/SellerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import AdminPanel from './pages/AdminPanel';
 
+const Toast: React.FC = () => {
+  const { message } = useAuth();
+  if (!message) return null;
+
+  const bgClass =
+    message.type === 'success'
+      ? 'bg-emerald-600'
+      : message.type === 'error'
+        ? 'bg-red-600'
+        : 'bg-slate-800';
+
+  return (
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className={`${bgClass} text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10`}>
+        <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+        <span className="text-sm font-bold tracking-tight">{message.text}</span>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
         <ScrollToTop />
+        <Toast />
         <div className="min-h-screen flex flex-col font-sans">
           <Navbar />
 

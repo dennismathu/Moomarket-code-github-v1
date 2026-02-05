@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, LayoutDashboard, LogOut } from 'lucide-react';
+import { Menu, X, Bell, LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Navbar = () => {
@@ -101,6 +101,12 @@ const Navbar = () => {
                     )}
                     {user ? (
                         <>
+                            <Link to="/profile" className="block px-3 py-4 text-base font-medium text-slate-700 border-b border-slate-50" onClick={toggleMobileMenu}>
+                                <div className="flex items-center gap-2 text-slate-700">
+                                    <UserIcon size={18} className="text-slate-400" />
+                                    Your Profile
+                                </div>
+                            </Link>
                             <Link to={user.role === 'seller' ? '/dashboard/seller' : '/dashboard/buyer'} className="block px-3 py-4 text-base font-bold text-emerald-600" onClick={toggleMobileMenu}>
                                 <div className="flex items-center gap-2">
                                     <LayoutDashboard size={18} />
@@ -110,7 +116,7 @@ const Navbar = () => {
                             <button
                                 onClick={() => {
                                     handleSignOut();
-                                    toggleMobileMenu();
+                                    setIsMobileMenuOpen(false);
                                 }}
                                 className="w-full text-left px-3 py-4 text-base font-medium text-red-600 border-t border-slate-100"
                             >

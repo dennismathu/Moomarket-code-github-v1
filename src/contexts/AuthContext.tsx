@@ -15,6 +15,8 @@ interface AuthContextType {
     updateProfile: (updates: Partial<User>) => Promise<{ error: Error | null }>
     signOut: () => Promise<void>
     refreshUser: () => Promise<void>
+    message: { text: string; type: 'success' | 'error' | 'info' } | null
+    setMessage: (msg: { text: string; type: 'success' | 'error' | 'info' } | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -24,6 +26,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null)
     const [session, setSession] = useState<Session | null>(null)
     const [loading, setLoading] = useState(true)
+    const [message, setMessageState] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+    const setMessage = (msg: { text: string; type: 'success' | 'error' | 'info' } | null) => {
+        setMessageState(msg)
+        if (msg) {
+            setTimeout(() => setMessageState(null), 3000)
+        }
+    }
 
     // Fetch user profile from public.users table
     const fetchUserProfile = async (userId: string, authUser?: SupabaseUser) => {
@@ -146,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             console.log('Supabase signIn success, data:', data);
+            setMessage({ text: 'Login successful!', type: 'success' })
             return { error: null }
         } catch (error) {
             console.error('Catch signIn error:', error);
@@ -202,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         setSupabaseUser(null)
         setSession(null)
+        setMessage({ text: 'Logged out successfully', type: 'info' })
     }
 
     // Update profile
@@ -232,7 +244,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Refresh user profile
     const refreshUser = async () => {
         if (supabaseUser) {
-            const profile = await fetchUserProfile(supabaseUser.id)
+            // Pass supabaseUser to ensure fallback is used if DB record isn't ready
+            const profile = await fetchUserProfile(supabaseUser.id, supabaseUser)
             setUser(profile)
         }
     }
@@ -249,6 +262,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         signOut,
         refreshUser,
+        message,
+        setMessage
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
