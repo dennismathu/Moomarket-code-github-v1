@@ -354,7 +354,7 @@ export async function createOrUpdateSellerProfile(userId: string, profile: any) 
                 user_id: userId,
                 ...profile,
                 updated_at: new Date().toISOString()
-            })
+            }, { onConflict: 'user_id' })
             .select()
             .single()
 
@@ -461,6 +461,122 @@ export async function addListingMedia(
     } catch (error) {
         console.error('Error adding listing media:', error)
         return { data: null, error: error as Error }
+    }
+}
+
+// ============================================
+// ADMIN MODERATION
+// ============================================
+
+/**
+ * Fetch all listings for admin moderation
+ */
+export async function getAllListingsForAdmin() {
+    try {
+        const { data, error } = await supabase
+            .from('cow_listings')
+            .select(`
+                *,
+                seller:users!seller_id(full_name, email, phone_number),
+                media:listing_media(media_url, media_type, display_order, storage_path),
+                vet:vet_verifications(*)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Error fetching admin listings:', error);
+        return { data: null, error: error as Error };
+    }
+}
+
+/**
+ * Update listing status (Approve/Reject)
+ */
+export async function updateListingStatus(listingId: string, status: 'approved' | 'rejected' | 'sold', notes?: string) {
+    try {
+        const { data, error } = await supabase
+            .from('cow_listings')
+            .update({
+                status,
+                admin_notes: notes,
+                approved_at: status === 'approved' ? new Date().toISOString() : null
+            })
+            .eq('id', listingId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { data, error: null };
+    } catch (error) {
+        console.error('Error updating listing status:', error);
+        return { data: null, error: error as Error };
+    }
+}
+
+/**
+ * Get platform metrics for Admin Dashboard
+ */
+export async function getAdminMetrics() {
+    try {
+        // Fetch base counts
+        const { count: totalListings } = await supabase.from('cow_listings').select('*', { count: 'exact', head: true });
+        const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
+
+        // Fetch top breeds by view count
+        const { data: topBreeds } = await supabase
+            .from('cow_listings')
+            .select('breed, view_count')
+            .order('view_count', { ascending: false });
+
+        // Fetch top locations by view count
+        const { data: topLocations } = await supabase
+            .from('cow_listings')
+            .select('county, view_count')
+            .order('view_count', { ascending: false });
+
+        // Aggregate locally (PostgREST grouping is limited without RPC)
+        const breedStats = (topBreeds || []).reduce((acc: any, curr: any) => {
+            acc[curr.breed] = (acc[curr.breed] || 0) + (curr.view_count || 0);
+            return acc;
+        }, {});
+
+        const locationStats = (topLocations || []).reduce((acc: any, curr: any) => {
+            acc[curr.county] = (acc[curr.county] || 0) + (curr.view_count || 0);
+            return acc;
+        }, {});
+
+        // Format for charts/display
+        const formattedBreeds = Object.entries(breedStats)
+            .map(([label, value]) => ({ label, value }))
+            .sort((a: any, b: any) => b.value - a.value)
+            .slice(0, 5);
+
+        const formattedLocations = Object.entries(locationStats)
+            .map(([label, value]) => ({ label, value }))
+            .sort((a: any, b: any) => b.value - a.value)
+            .slice(0, 5);
+
+        const { data: mostViewedListings } = await supabase
+            .from('cow_listings')
+            .select('id, breed, view_count, price')
+            .order('view_count', { ascending: false })
+            .limit(5);
+
+        return {
+            data: {
+                totalListings: totalListings || 0,
+                totalUsers: totalUsers || 0,
+                topBreeds: formattedBreeds,
+                topLocations: formattedLocations,
+                mostViewedListings: mostViewedListings || []
+            },
+            error: null
+        };
+    } catch (error) {
+        console.error('Error fetching admin metrics:', error);
+        return { data: null, error: error as Error };
     }
 }
 

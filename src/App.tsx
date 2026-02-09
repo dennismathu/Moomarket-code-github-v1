@@ -72,7 +72,7 @@ const App: React.FC = () => {
               <Route
                 path="/seller/onboarding"
                 element={
-                  <ProtectedRoute requireRole="seller">
+                  <ProtectedRoute>
                     <SellerOnboarding />
                   </ProtectedRoute>
                 }

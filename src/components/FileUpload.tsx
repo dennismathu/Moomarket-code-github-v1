@@ -3,7 +3,7 @@ import { Upload, X, Loader2 } from 'lucide-react';
 import { uploadImage, uploadVideo } from '../lib/database';
 
 interface FileUploadProps {
-    type: 'photo' | 'video_walking' | 'video_milking';
+    type: 'photo' | 'video_walking' | 'video_milking' | 'milking_card';
     listingId?: string;
     onUploadComplete: (url: string, path: string) => void;
     onRemove?: () => void;
@@ -62,7 +62,7 @@ export function FileUpload({
 
             let result;
 
-            if (type === 'photo') {
+            if (type === 'photo' || type === 'milking_card') {
                 const uploadFolder = folder || listingId || 'temp';
                 const path = `${uploadFolder}/${filename}`;
                 result = await uploadImage(file, bucket, path);
@@ -105,7 +105,7 @@ export function FileUpload({
             <div className="relative">
                 {preview ? (
                     <div className="relative aspect-video bg-slate-100 rounded-xl overflow-hidden border-2 border-slate-200">
-                        {type === 'photo' ? (
+                        {(type === 'photo' || type === 'milking_card') ? (
                             <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
                             <video src={preview} className="w-full h-full object-cover" controls />

@@ -4,6 +4,7 @@ import { Check, Shield, MapPin, Smartphone, User, FileCheck, Loader2, AlertCircl
 import { useAuth } from '../contexts/AuthContext';
 import { createOrUpdateSellerProfile, uploadImage } from '../lib/database';
 import { FileUpload } from '../components/FileUpload';
+import { COUNTIES } from '../data/counties';
 
 const SellerOnboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -15,7 +16,10 @@ const SellerOnboarding: React.FC = () => {
   // Form State
   const [formData, setFormData] = useState({
     phoneNumber: '',
+    county: '',
     farmName: '',
+    farmLocation: '',
+    farmUniqId: '', // coordinates
     idFrontUrl: '',
     idBackUrl: '',
     idFrontPath: '',
@@ -27,15 +31,17 @@ const SellerOnboarding: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         phoneNumber: user.phone_number || '+254',
-        farmName: prev.farmName || ''
+        county: user.county || '',
+        farmName: prev.farmName || '',
+        farmLocation: user.county && user.specific_location ? `${user.specific_location}, ${user.county}` : ''
       }));
     }
   }, [user]);
 
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.phoneNumber || !formData.farmName) {
-      setError('Please fill in all fields');
+    if (!formData.phoneNumber || !formData.farmLocation || !formData.county) {
+      setError('Please fill in phone number, county, and farm location');
       return;
     }
 
@@ -50,8 +56,11 @@ const SellerOnboarding: React.FC = () => {
       if (profileError) throw profileError;
 
       // 2. Create/Update seller profile with farm name
+      const finalFarmName = formData.farmName.trim() || `${user.full_name}'s Farm`;
       const { error: sellerError } = await createOrUpdateSellerProfile(user!.id, {
-        farm_name: formData.farmName,
+        farm_name: finalFarmName,
+        farm_location: formData.farmLocation,
+        county: formData.county,
         verification_status: 'pending' // Reset to pending if they are re-onboarding
       });
       if (sellerError) throw sellerError;
@@ -64,8 +73,32 @@ const SellerOnboarding: React.FC = () => {
     }
   };
 
-  const handleStep2 = async () => {
-    if (!formData.idFrontUrl || !formData.idBackUrl) {
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData(prev => ({
+          ...prev,
+          farmLocation: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+          farmUniqId: `${latitude},${longitude}`
+        }));
+        setLoading(false);
+      },
+      (error) => {
+        setError('Unable to retrieve your location');
+        setLoading(false);
+      }
+    );
+  };
+
+  const handleStep2 = async (skip = false) => {
+    if (!skip && (!formData.idFrontUrl || !formData.idBackUrl)) {
       setError('Please upload both sides of your ID');
       return;
     }
@@ -74,17 +107,27 @@ const SellerOnboarding: React.FC = () => {
     setError(null);
 
     try {
-      // Update seller profile with ID document URLs
-      const { error: sellerError } = await createOrUpdateSellerProfile(user!.id, {
-        id_front_url: formData.idFrontUrl,
-        id_back_url: formData.idBackUrl,
-        id_front_path: formData.idFrontPath,
-        id_back_path: formData.idBackPath,
-        verification_status: 'pending'
-      });
+      // Update seller profile logic
+      const finalFarmName = formData.farmName.trim() || `${user.full_name}'s Farm`;
+      const updates: any = {
+        verification_status: 'pending', // 'unverified' is not a valid enum value, using 'pending' as default
+        farm_name: finalFarmName,
+        farm_location: formData.farmLocation,
+        county: formData.county
+      };
+
+      if (!skip) {
+        updates.id_front_url = formData.idFrontUrl;
+        updates.id_back_url = formData.idBackUrl;
+        updates.id_front_path = formData.idFrontPath;
+        updates.id_back_path = formData.idBackPath;
+      }
+
+      // Update seller profile with ID document URLs (if not skipping)
+      const { error: sellerError } = await createOrUpdateSellerProfile(user!.id, updates);
       if (sellerError) throw sellerError;
 
-      // Update user role to seller and is_id_verified to false (pending)
+      // Update user role to seller
       const { error: profileUpdateError } = await updateProfile({
         is_id_verified: false,
         role: 'seller'
@@ -92,7 +135,12 @@ const SellerOnboarding: React.FC = () => {
       if (profileUpdateError) throw profileUpdateError;
 
       await refreshUser();
-      setStep(3);
+
+      if (skip) {
+        navigate('/seller/new-listing');
+      } else {
+        setStep(3);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to submit documents');
     } finally {
@@ -149,15 +197,40 @@ const SellerOnboarding: React.FC = () => {
                     <MapPin size={20} />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Farm Name</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Farm Name <span className="text-slate-300 font-normal normal-case">(Optional)</span></label>
                     <input
                       type="text"
-                      required
                       value={formData.farmName}
                       onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
-                      placeholder="e.g. Kinuthia Dairy"
+                      placeholder={`e.g. ${user.full_name}'s Farm`}
                       className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     />
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0">
+                    <MapPin size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Farm Location / Coordinates</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={formData.farmLocation}
+                        onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                        placeholder="e.g. Kiambu, Ruiru"
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={getUserLocation}
+                        className="p-4 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors"
+                        title="Use Current Location"
+                      >
+                        <MapPin size={20} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -167,7 +240,7 @@ const SellerOnboarding: React.FC = () => {
                 className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={20} className="animate-spin" />}
-                Next: ID Verification
+                Next
               </button>
             </form>
           )}
@@ -212,7 +285,13 @@ const SellerOnboarding: React.FC = () => {
                   Back
                 </button>
                 <button
-                  onClick={handleStep2}
+                  onClick={() => handleStep2(true)}
+                  className="flex-1 py-4 bg-white border border-slate-200 text-slate-500 font-bold rounded-xl hover:bg-slate-50 transition-all"
+                >
+                  Skip for now
+                </button>
+                <button
+                  onClick={() => handleStep2(false)}
                   disabled={loading || !formData.idFrontUrl || !formData.idBackUrl}
                   className="flex-[2] py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >

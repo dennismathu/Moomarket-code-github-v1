@@ -8,7 +8,7 @@ import { ChevronRight, Camera, Video, FileText, Check, AlertCircle, MapPin, Baby
 interface UploadedFile {
   url: string;
   path: string;
-  type: 'photo' | 'video_walking' | 'video_milking';
+  type: 'photo' | 'video_walking' | 'video_milking' | 'milking_card';
 }
 
 export default function NewListing() {
@@ -21,6 +21,7 @@ export default function NewListing() {
   const [fetching, setFetching] = useState(!!editId);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const [initialData, setInitialData] = useState<any>(null);
 
@@ -36,6 +37,7 @@ export default function NewListing() {
     vaccinated: false,
     dewormed: false,
     milkYield: [0, 0, 0, 0, 0, 0, 0],
+    customBreed: '',
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -92,9 +94,20 @@ export default function NewListing() {
   };
 
   const counties = ["Kiambu", "Nakuru", "Nyeri", "Murang'a", "Bomet", "Meru", "Uasin Gishu", "Kericho", "Nyandarua", "Kirinyaga"];
-  const breeds = ["Friesian", "Ayrshire", "Jersey", "Guernsey", "Crossbreed"];
+  const breeds = ["Friesian", "Ayrshire", "Jersey", "Guernsey", "Crossbreed", "Other"];
 
-  const handleNext = () => setStep(step + 1);
+  const handleNext = () => {
+    if (step === 1) {
+      const isCustomBreed = formData.breed === 'Other' || formData.breed === 'Crossbreed';
+      if (isCustomBreed && !formData.customBreed) {
+        setValidationErrors(['customBreed']);
+        setMessage({ text: 'Please specify the exact breed name before proceeding.', type: 'error' });
+        return;
+      }
+    }
+    setValidationErrors([]);
+    setStep(step + 1);
+  };
   const handleBack = () => setStep(step - 1);
 
   const handleFileUpload = (url: string, path: string, type: string, index?: number) => {
@@ -140,10 +153,13 @@ export default function NewListing() {
     setError(null);
 
     try {
-      // Create the listing
+      const finalBreed = (formData.breed === 'Other' || formData.breed === 'Crossbreed')
+        ? formData.customBreed
+        : formData.breed;
+
       const listingData = {
         seller_id: user.id,
-        breed: formData.breed,
+        breed: finalBreed,
         age: parseInt(formData.age),
         parity: parseInt(formData.parity),
         price: parseFloat(formData.price),
@@ -160,7 +176,7 @@ export default function NewListing() {
         is_dewormed: formData.dewormed,
         county: formData.county,
         specific_location: formData.specificLocation,
-        status: status,
+        status: (status === 'pending' ? 'approved' : status) as any, // Auto-approve for now
       };
 
       let listing;
@@ -275,6 +291,30 @@ export default function NewListing() {
                   </select>
                 </div>
 
+                {(formData.breed === 'Other' || formData.breed === 'Crossbreed') && (
+                  <div className="animate-in slide-in-from-top-2">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                      {formData.breed === 'Other' ? 'Name Your Breed' : 'Specify Crossbreed Details'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.customBreed}
+                      onChange={(e) => {
+                        setFormData({ ...formData, customBreed: e.target.value });
+                        if (validationErrors.includes('customBreed')) {
+                          setValidationErrors(prev => prev.filter(err => err !== 'customBreed'));
+                        }
+                      }}
+                      className={`w-full p-4 bg-slate-50 border ${validationErrors.includes('customBreed') ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200'} rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all`}
+                      placeholder={formData.breed === 'Other' ? "e.g., Boran, Sahiwal..." : "e.g., Friesian-Jersey Cross..."}
+                      required
+                    />
+                    {validationErrors.includes('customBreed') && (
+                      <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-2 px-1">This field is required</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Age (years)</label>
@@ -329,7 +369,11 @@ export default function NewListing() {
 
                 <button
                   onClick={handleNext}
-                  disabled={!formData.breed || !formData.age || !formData.parity || !formData.price}
+                  disabled={
+                    !formData.breed ||
+                    ((formData.breed === 'Other' || formData.breed === 'Crossbreed') && !formData.customBreed) ||
+                    !formData.age || !formData.parity || !formData.price
+                  }
                   className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   Continue <ChevronRight size={20} />
@@ -370,6 +414,20 @@ export default function NewListing() {
                     <span className="text-sm font-medium text-slate-700">Average Daily Yield:</span>
                     <span className="text-lg font-bold text-emerald-600">{avgYield}L</span>
                   </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Milking Card (Optional)</label>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Upload a photo of your milking records/card to proof daily yield</p>
+                  <FileUpload
+                    type="milking_card"
+                    label="Upload Milking Card"
+                    accept="image/*"
+                    maxSizeMB={5}
+                    initialPreview={uploadedFiles.find(f => f.type === 'milking_card')?.url}
+                    onUploadComplete={(url, path) => handleFileUpload(url, path, 'milking_card')}
+                    onRemove={() => handleRemoveFile('milking_card')}
+                  />
                 </div>
 
                 <div>

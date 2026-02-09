@@ -3,14 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { User, ChevronLeft, Save, MapPin, Phone, User as UserIcon, CheckCircle2, ArrowRight, LayoutDashboard, ShoppingBag } from 'lucide-react'
 
-const COUNTIES = [
-    'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo Marakwet', 'Embu', 'Garissa', 'Homa Bay',
-    'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii',
-    'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera',
-    'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang\'a', 'Nairobi', 'Nakuru', 'Nandi',
-    'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita Taveta', 'Tana River',
-    'Tharaka Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'
-]
+import { COUNTIES } from '../data/counties'
 
 export default function ProfilePage() {
     const { user, updateProfile } = useAuth()
@@ -22,7 +15,9 @@ export default function ProfilePage() {
         full_name: '',
         phone_number: '',
         county: '',
-        specific_location: ''
+        specific_location: '',
+        farm_name: '',
+        farm_location: ''
     })
 
     useEffect(() => {
@@ -33,6 +28,14 @@ export default function ProfilePage() {
                 county: user.county || '',
                 specific_location: user.specific_location || ''
             })
+            setFormData({
+                full_name: user.full_name || '',
+                phone_number: user.phone_number || '+254',
+                county: user.county || '',
+                specific_location: user.specific_location || '',
+                farm_name: user.seller_profile?.farm_name || '',
+                farm_location: user.seller_profile?.farm_location || ''
+            })
         }
     }, [user])
 
@@ -40,7 +43,11 @@ export default function ProfilePage() {
         formData.full_name !== (user.full_name || '') ||
         formData.phone_number !== (user.phone_number || '') ||
         formData.county !== (user.county || '') ||
-        formData.specific_location !== (user.specific_location || '')
+        formData.specific_location !== (user.specific_location || '') ||
+        (user.role === 'seller' && (
+            formData.farm_name !== (user.seller_profile?.farm_name || '') ||
+            formData.farm_location !== (user.seller_profile?.farm_location || '')
+        ))
     ) : false;
 
     const hasProfile = user?.phone_number && user?.county;
@@ -57,6 +64,15 @@ export default function ProfilePage() {
             county: formData.county,
             specific_location: formData.specific_location
         })
+
+        if (user?.role === 'seller') {
+            await import('../lib/database').then(async ({ createOrUpdateSellerProfile }) => {
+                await createOrUpdateSellerProfile(user.id, {
+                    farm_name: formData.farm_name,
+                    farm_location: formData.farm_location
+                })
+            })
+        }
 
         if (error) {
             setError(error.message)
@@ -219,6 +235,41 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {user.role === 'seller' && (
+                                    <div className="pt-6 mt-6 border-t border-slate-100">
+                                        <h3 className="text-sm font-bold text-slate-900 mb-4">Farm Details</h3>
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                                    Farm Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.farm_name}
+                                                    onChange={(e) => setFormData({ ...formData, farm_name: e.target.value })}
+                                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                    placeholder="Your Farm Name"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                                    Farm Location
+                                                </label>
+                                                <div className="relative">
+                                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                                    <input
+                                                        type="text"
+                                                        value={formData.farm_location}
+                                                        onChange={(e) => setFormData({ ...formData, farm_location: e.target.value })}
+                                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                        placeholder="Farm Location coordinates or address"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {isDirty && !success && (
                                     <p className="text-xs text-amber-600 font-medium mb-4 animate-pulse flex items-center gap-1">

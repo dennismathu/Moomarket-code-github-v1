@@ -27,8 +27,8 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
         return <Navigate to="/login" replace />
     }
 
-    // Check role if required
-    if (requireRole && user.role !== requireRole) {
+    // Check role if required - Admins can access everything
+    if (requireRole && user.role !== requireRole && user.role !== 'admin') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
                 <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center">
