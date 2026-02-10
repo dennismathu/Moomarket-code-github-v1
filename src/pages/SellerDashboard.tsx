@@ -210,14 +210,19 @@ const SellerDashboard: React.FC = () => {
                      <TrendingUp size={12} /> +12% this week
                   </p>
                </div>
-               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-amber-500 transition-colors">
+               <button
+                  onClick={() => document.getElementById('upcoming-inspections')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-amber-500 transition-colors text-left w-full"
+               >
                   <div className="flex justify-between items-start mb-2">
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Inspections</p>
                      <Calendar size={16} className="text-slate-300 group-hover:text-amber-500" />
                   </div>
                   <p className="text-3xl font-black text-emerald-600">{inspectionRequests.filter(r => r.status === 'pending').length}</p>
-                  <p className="text-[10px] text-slate-500 font-medium mt-1">Pending requests</p>
-               </div>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-wider flex items-center gap-1">
+                     Pending requests <ChevronRight size={10} className="text-slate-400" />
+                  </p>
+               </button>
                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-emerald-600 transition-colors">
                   <div className="flex justify-between items-start mb-2">
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Buyer Inquiries</p>
@@ -335,7 +340,7 @@ const SellerDashboard: React.FC = () => {
 
 
                   {/* Inspection Requests Section */}
-                  <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div id="upcoming-inspections" className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden scroll-mt-24">
                      <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                         <h3 className="font-bold text-slate-900 flex items-center gap-2">
                            <Calendar className="text-emerald-600" size={20} />

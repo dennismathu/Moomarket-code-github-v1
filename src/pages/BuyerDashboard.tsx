@@ -144,8 +144,8 @@ const BuyerDashboard: React.FC = () => {
                           {new Date(inspection.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
                         </span>
                       </div>
-                      <h4 className="font-bold text-slate-900 mb-0.5 text-sm">{inspection.listing.breed}</h4>
-                      <p className="text-[10px] text-slate-500 mb-3">{inspection.listing.specific_location || inspection.listing.county}</p>
+                      <h4 className="font-bold text-slate-900 mb-0.5 text-sm">{inspection.listing?.breed || 'Unknown Breed'}</h4>
+                      <p className="text-[10px] text-slate-500 mb-3">{inspection.listing?.specific_location || inspection.listing?.county || 'Location Unavailable'}</p>
                       <button className="w-full py-2 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg hover:shadow-sm transition-all">
                         {inspection.status === 'confirmed' ? 'Contact Farmer' : 'View Details'}
                       </button>

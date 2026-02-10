@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Bell, LayoutDashboard, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getInspectionRequestsBySeller } from '../../lib/database';
 
 const Navbar = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [pendingInspections, setPendingInspections] = useState(0);
 
-    console.log('Navbar user state:', user);
-    console.log('User role:', user?.role);
+    useEffect(() => {
+        if (user?.role === 'seller' || user?.role === 'admin') {
+            fetchPendingCount();
+        }
+    }, [user]);
+
+    const fetchPendingCount = async () => {
+        if (!user) return;
+        try {
+            const { data, error } = await getInspectionRequestsBySeller(user.id);
+            if (error) throw error;
+            const count = data?.filter((r: any) => r.status === 'pending').length || 0;
+            setPendingInspections(count);
+        } catch (err) {
+            console.error('Error fetching pending count:', err);
+        }
+    };
 
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -40,8 +57,14 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center space-x-4">
                         {user ? (
                             <div className="flex items-center gap-4">
-                                <button className="p-2 text-slate-400 hover:text-emerald-600 transition-colors">
+                                <button
+                                    onClick={() => navigate('/dashboard/seller#upcoming-inspections')}
+                                    className="p-2 text-slate-400 hover:text-emerald-600 transition-colors relative"
+                                >
                                     <Bell size={20} />
+                                    {pendingInspections > 0 && (
+                                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                    )}
                                 </button>
                                 {user.role === 'admin' ? (
                                     <div className="flex items-center gap-2">
@@ -163,6 +186,18 @@ const Navbar = () => {
                                     Sign Out
                                 </div>
                             </button>
+                            {pendingInspections > 0 && (
+                                <Link
+                                    to="/dashboard/seller#upcoming-inspections"
+                                    className="block px-3 py-4 text-sm font-bold text-amber-600 bg-amber-50 rounded-xl mt-2"
+                                    onClick={toggleMobileMenu}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Bell size={18} className="animate-bounce" />
+                                        You have {pendingInspections} pending inspection requests
+                                    </div>
+                                </Link>
+                            )}
                         </>
                     ) : (
                         <Link to="/login" className="block px-3 py-4 text-base font-bold text-emerald-600 border-t border-slate-100" onClick={toggleMobileMenu}>
