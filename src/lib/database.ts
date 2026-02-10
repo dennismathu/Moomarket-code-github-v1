@@ -685,3 +685,26 @@ export async function updateInspectionRequestStatus(requestId: string, status: '
         return { data: null, error: error as Error }
     }
 }
+/**
+ * Fetch notifications (inspection request updates) for a user
+ */
+export async function getNotifications(userId: string) {
+    try {
+        const { data, error } = await supabase
+            .from('inspection_requests')
+            .select(`
+                *,
+                buyer:users!buyer_id(full_name),
+                listing:cow_listings!inner(breed, seller_id)
+            `)
+            .or(`buyer_id.eq.${userId},listing.seller_id.eq.${userId}`)
+            .order('updated_at', { ascending: false })
+            .limit(10)
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error fetching notifications:', error)
+        return { data: null, error: error as Error }
+    }
+}

@@ -2,29 +2,54 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Bell, LayoutDashboard, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getInspectionRequestsBySeller } from '../../lib/database';
+import { getInspectionRequestsBySeller, getNotifications } from '../../lib/database';
 
 const Navbar = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [pendingInspections, setPendingInspections] = useState(0);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        if (user?.role === 'seller' || user?.role === 'admin') {
-            fetchPendingCount();
+        if (user) {
+            fetchNotifications();
+            const interval = setInterval(fetchNotifications, 30000);
+
+            // Close dropdown on click outside
+            const handleClickOutside = (event: MouseEvent) => {
+                const target = event.target as HTMLElement;
+                if (!target.closest('.notifications-container')) {
+                    setIsNotificationsOpen(false);
+                }
+            };
+            document.addEventListener('mousedown', handleClickOutside);
+
+            return () => {
+                clearInterval(interval);
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
         }
     }, [user]);
 
-    const fetchPendingCount = async () => {
+    const fetchNotifications = async () => {
         if (!user) return;
         try {
-            const { data, error } = await getInspectionRequestsBySeller(user.id);
+            const { data, error } = await getNotifications(user.id);
             if (error) throw error;
-            const count = data?.filter((r: any) => r.status === 'pending').length || 0;
-            setPendingInspections(count);
+
+            // Logic to determine "unread" - for now just count pending seller requests 
+            // and confirmed buyer requests
+            const unread = data?.filter((n: any) =>
+                (n.listing.seller_id === user.id && n.status === 'pending') ||
+                (n.buyer_id === user.id && n.status === 'confirmed')
+            ).length || 0;
+
+            setNotifications(data || []);
+            setUnreadCount(unread);
         } catch (err) {
-            console.error('Error fetching pending count:', err);
+            console.error('Error fetching notifications:', err);
         }
     };
 
@@ -57,15 +82,90 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center space-x-4">
                         {user ? (
                             <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => navigate('/dashboard/seller#upcoming-inspections')}
-                                    className="p-2 text-slate-400 hover:text-emerald-600 transition-colors relative"
-                                >
-                                    <Bell size={20} />
-                                    {pendingInspections > 0 && (
-                                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                <div className="relative notifications-container">
+                                    <button
+                                        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                                        className="p-2 text-slate-400 hover:text-emerald-600 transition-colors relative"
+                                    >
+                                        <Bell size={20} />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                        )}
+                                    </button>
+
+                                    {/* Desktop Notifications Dropdown */}
+                                    {isNotificationsOpen && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                                <h3 className="font-bold text-slate-900 text-sm italic">Notifications</h3>
+                                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{unreadCount} New</span>
+                                            </div>
+                                            <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-50">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-8 text-center text-slate-400">
+                                                        <p className="text-xs">No notifications yet</p>
+                                                    </div>
+                                                ) : (
+                                                    notifications.map(n => {
+                                                        const isSeller = n.listing.seller_id === user.id;
+                                                        const isBuyer = n.buyer_id === user.id;
+
+                                                        return (
+                                                            <div
+                                                                key={n.id}
+                                                                className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${((isSeller && n.status === 'pending') || (isBuyer && n.status === 'confirmed')) ? 'bg-emerald-50/30' : ''
+                                                                    }`}
+                                                                onClick={() => {
+                                                                    navigate(isSeller ? '/dashboard/seller#upcoming-inspections' : '/dashboard/buyer');
+                                                                    setIsNotificationsOpen(false);
+                                                                }}
+                                                            >
+                                                                <div className="flex gap-3">
+                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.status === 'confirmed' ? 'bg-blue-100 text-blue-600' :
+                                                                        n.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                                                                            'bg-amber-100 text-amber-600'
+                                                                        }`}>
+                                                                        <Bell size={14} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs text-slate-900 leading-tight">
+                                                                            {isSeller && n.status === 'pending' && (
+                                                                                <>New inspection request for your <span className="font-bold">{n.listing.breed}</span></>
+                                                                            )}
+                                                                            {isBuyer && n.status === 'confirmed' && (
+                                                                                <>Your inspection for <span className="font-bold">{n.listing.breed}</span> has been <span className="text-blue-600 font-bold">confirmed</span>!</>
+                                                                            )}
+                                                                            {isBuyer && n.status === 'pending' && (
+                                                                                <>You requested an inspection for <span className="font-bold">{n.listing.breed}</span></>
+                                                                            )}
+                                                                            {n.status === 'completed' && (
+                                                                                <>Inspection for <span className="font-bold">{n.listing.breed}</span> marked as <span className="text-emerald-600 font-bold">completed</span></>
+                                                                            )}
+                                                                        </p>
+                                                                        <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-bold">
+                                                                            {new Date(n.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })
+                                                )}
+                                            </div>
+                                            <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                                                <button
+                                                    onClick={() => {
+                                                        navigate(user.role === 'seller' ? '/dashboard/seller' : '/dashboard/buyer');
+                                                        setIsNotificationsOpen(false);
+                                                    }}
+                                                    className="text-[10px] font-bold text-slate-500 hover:text-emerald-600 uppercase tracking-widest"
+                                                >
+                                                    View All Activity
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
-                                </button>
+                                </div>
                                 {user.role === 'admin' ? (
                                     <div className="flex items-center gap-2">
                                         <Link
@@ -186,15 +286,15 @@ const Navbar = () => {
                                     Sign Out
                                 </div>
                             </button>
-                            {pendingInspections > 0 && (
+                            {unreadCount > 0 && (
                                 <Link
-                                    to="/dashboard/seller#upcoming-inspections"
+                                    to={user.role === 'seller' ? '/dashboard/seller#upcoming-inspections' : '/dashboard/buyer'}
                                     className="block px-3 py-4 text-sm font-bold text-amber-600 bg-amber-50 rounded-xl mt-2"
                                     onClick={toggleMobileMenu}
                                 >
                                     <div className="flex items-center gap-2">
                                         <Bell size={18} className="animate-bounce" />
-                                        You have {pendingInspections} pending inspection requests
+                                        You have {unreadCount} new notification{unreadCount > 1 ? 's' : ''}
                                     </div>
                                 </Link>
                             )}
