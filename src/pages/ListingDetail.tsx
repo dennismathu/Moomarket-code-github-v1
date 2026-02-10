@@ -149,6 +149,8 @@ const ListingDetail: React.FC = () => {
         if (error) throw error;
         alert("Inspection date updated successfully!");
         setExistingRequest({ ...existingRequest, preferred_date: inspectionDate });
+        // Trigger notification refresh
+        window.dispatchEvent(new CustomEvent('refreshNotifications'));
       } else {
         const { error } = await createInspectionRequest({
           listing_id: id!,
@@ -160,6 +162,8 @@ const ListingDetail: React.FC = () => {
         alert("Inspection request sent successfully!");
         // Refresh check
         checkIfRequested();
+        // Trigger notification refresh
+        window.dispatchEvent(new CustomEvent('refreshNotifications'));
       }
       setShowInspectionModal(false);
     } catch (err: any) {

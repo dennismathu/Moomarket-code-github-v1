@@ -721,19 +721,43 @@ export async function updateInspectionRequest(requestId: string, updates: Partia
  */
 export async function getNotifications(userId: string) {
     try {
-        const { data, error } = await supabase
+        // Fetch buyer-side notifications
+        const { data: buyerData, error: buyerError } = await supabase
             .from('inspection_requests')
             .select(`
                 *,
                 buyer:users!buyer_id(full_name),
                 listing:cow_listings!inner(breed, seller_id)
             `)
-            .or(`buyer_id.eq.${userId},listing.seller_id.eq.${userId}`)
+            .eq('buyer_id', userId)
             .order('updated_at', { ascending: false })
             .limit(10)
 
-        if (error) throw error
-        return { data, error: null }
+        if (buyerError) throw buyerError
+
+        // Fetch seller-side notifications
+        const { data: sellerData, error: sellerError } = await supabase
+            .from('inspection_requests')
+            .select(`
+                *,
+                buyer:users!buyer_id(full_name),
+                listing:cow_listings!inner(breed, seller_id)
+            `)
+            .eq('listing.seller_id', userId)
+            .order('updated_at', { ascending: false })
+            .limit(10)
+
+        if (sellerError) throw sellerError
+
+        // Merge and sort results
+        const mergedData = [...(buyerData || []), ...(sellerData || [])]
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+            .slice(0, 10)
+
+        // Deduplicate just in case
+        const uniqueData = Array.from(new Map(mergedData.map(item => [item.id, item])).values())
+
+        return { data: uniqueData, error: null }
     } catch (error) {
         console.error('Error fetching notifications:', error)
         return { data: null, error: error as Error }

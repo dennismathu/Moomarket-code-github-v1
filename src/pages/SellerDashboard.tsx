@@ -149,6 +149,8 @@ const SellerDashboard: React.FC = () => {
          const { error } = await updateInspectionRequest(requestId, { status });
          if (error) throw error;
          setInspectionRequests(prev => prev.map(req => req.id === requestId ? { ...req, status } : req));
+         // Trigger notification refresh
+         window.dispatchEvent(new CustomEvent('refreshNotifications'));
       } catch (err) {
          console.error('Error updating inspection status:', err);
          alert('Failed to update inspection status');
@@ -162,6 +164,8 @@ const SellerDashboard: React.FC = () => {
          const { error } = await updateInspectionRequest(reschedulingRequest.id, { preferred_date: newInspectionDate });
          if (error) throw error;
          setInspectionRequests(prev => prev.map(req => req.id === reschedulingRequest.id ? { ...req, preferred_date: newInspectionDate } : req));
+         // Trigger notification refresh
+         window.dispatchEvent(new CustomEvent('refreshNotifications'));
          setReschedulingRequest(null);
          setNewInspectionDate('');
          alert('Inspection rescheduled successfully!');

@@ -15,7 +15,11 @@ const Navbar = () => {
     useEffect(() => {
         if (user) {
             fetchNotifications();
-            const interval = setInterval(fetchNotifications, 30000);
+            const interval = setInterval(fetchNotifications, 10000);
+
+            // Add listener for manual refreshes
+            const handleRefresh = () => fetchNotifications();
+            window.addEventListener('refreshNotifications', handleRefresh);
 
             // Close dropdown on click outside
             const handleClickOutside = (event: MouseEvent) => {
@@ -28,6 +32,7 @@ const Navbar = () => {
 
             return () => {
                 clearInterval(interval);
+                window.removeEventListener('refreshNotifications', handleRefresh);
                 document.removeEventListener('mousedown', handleClickOutside);
             };
         }
