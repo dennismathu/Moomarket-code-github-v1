@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { CowListing } from '../types/types'
+import { CowListing, InspectionRequest } from '../types/types'
 
 // ============================================
 // LISTINGS
@@ -595,5 +595,92 @@ export async function deleteListingMedia(listingId: string) {
     } catch (error) {
         console.error('Error deleting listing media:', error)
         return { error: error as Error }
+    }
+}
+
+// ============================================
+// INSPECTION REQUESTS
+// ============================================
+
+/**
+ * Create a new inspection request
+ */
+export async function createInspectionRequest(request: Partial<InspectionRequest>) {
+    try {
+        const { data, error } = await supabase
+            .from('inspection_requests')
+            .insert([request])
+            .select()
+            .single()
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error creating inspection request:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Get inspection requests for a buyer
+ */
+export async function getInspectionRequestsByBuyer(buyerId: string) {
+    try {
+        const { data, error } = await supabase
+            .from('inspection_requests')
+            .select(`
+                *,
+                listing:cow_listings(breed, price, county, specific_location)
+            `)
+            .eq('buyer_id', buyerId)
+            .order('preferred_date', { ascending: true })
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error fetching buyer inspection requests:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Get inspection requests for a seller's listings
+ */
+export async function getInspectionRequestsBySeller(sellerId: string) {
+    try {
+        const { data, error } = await supabase
+            .from('inspection_requests')
+            .select(`
+                *,
+                listing:cow_listings!inner(breed, price, county, specific_location, seller_id)
+            `)
+            .eq('listing.seller_id', sellerId)
+            .order('preferred_date', { ascending: true })
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error fetching seller inspection requests:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Update inspection request status
+ */
+export async function updateInspectionRequestStatus(requestId: string, status: 'pending' | 'confirmed' | 'completed') {
+    try {
+        const { data, error } = await supabase
+            .from('inspection_requests')
+            .update({ status })
+            .eq('id', requestId)
+            .select()
+            .single()
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error updating inspection request status:', error)
+        return { data: null, error: error as Error }
     }
 }

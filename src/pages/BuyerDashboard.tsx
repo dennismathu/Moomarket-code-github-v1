@@ -2,19 +2,36 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MessageSquare, Clock, MapPin, ChevronRight, Bookmark, Search, Shield } from 'lucide-react';
-import { getSavedListings } from '../lib/database';
+import { getSavedListings, getInspectionRequestsByBuyer } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
 const BuyerDashboard: React.FC = () => {
   const { user } = useAuth();
   const [savedCows, setSavedCows] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [inspections, setInspections] = React.useState<any[]>([]);
+  const [inspectionsLoading, setInspectionsLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (user) {
       fetchSavedListings();
+      fetchInspections();
     }
   }, [user]);
+
+  const fetchInspections = async () => {
+    if (!user) return;
+    setInspectionsLoading(true);
+    try {
+      const { data, error } = await getInspectionRequestsByBuyer(user.id);
+      if (error) throw error;
+      setInspections(data || []);
+    } catch (err) {
+      console.error('Error fetching inspections:', err);
+    } finally {
+      setInspectionsLoading(false);
+    }
+  };
 
   const fetchSavedListings = async () => {
     try {
@@ -103,17 +120,39 @@ const BuyerDashboard: React.FC = () => {
                   Active Inspections
                 </h3>
               </div>
-              <div className="p-6 space-y-4">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="flex justify-between items-start mb-2">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Confirmed Visit</p>
-                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">JAN 24</span>
-                  </div>
-                  <h4 className="font-bold text-slate-900 mb-1">Friesian Heifer</h4>
-                  <p className="text-xs text-slate-500 mb-3">Green Valleys Farm, Kiambu</p>
-                  <button className="w-full py-2 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:shadow-sm">Contact Farmer</button>
+              {inspectionsLoading ? (
+                <div className="p-8 text-center text-slate-400">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Loading...</p>
                 </div>
-              </div>
+              ) : inspections.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">
+                  <p className="text-xs">No active inspection requests.</p>
+                </div>
+              ) : (
+                <div className="p-6 space-y-4">
+                  {inspections.map(inspection => (
+                    <div key={inspection.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border ${inspection.status === 'confirmed' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          inspection.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                            'bg-amber-100 text-amber-700 border-amber-200'
+                          }`}>
+                          {inspection.status}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {new Date(inspection.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-slate-900 mb-0.5 text-sm">{inspection.listing.breed}</h4>
+                      <p className="text-[10px] text-slate-500 mb-3">{inspection.listing.specific_location || inspection.listing.county}</p>
+                      <button className="w-full py-2 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg hover:shadow-sm transition-all">
+                        {inspection.status === 'confirmed' ? 'Contact Farmer' : 'View Details'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">

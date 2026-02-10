@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BadgeCheck, Calendar, MapPin, ShieldCheck, Heart, Share2, ArrowLeft, MessageSquare, CalendarDays, Check, Info, AlertTriangle, Truck, Play, X, Baby, Smartphone, Droplets, Phone, Lock, Zap, Loader2, Video, LayoutDashboard } from 'lucide-react';
-import { getListingById, saveListing, unsaveListing } from '../lib/database';
+import { getListingById, saveListing, unsaveListing, createInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -14,6 +14,8 @@ const ListingDetail: React.FC = () => {
   const [activePhoto, setActivePhoto] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [inspectionDate, setInspectionDate] = useState('');
+  const [requestingInspection, setRequestingInspection] = useState(false);
 
   useEffect(() => {
     fetchListing();
@@ -103,6 +105,37 @@ const ListingDetail: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to load listing');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestInspection = async () => {
+    if (!user) {
+      alert("Please login to request an inspection");
+      return;
+    }
+    if (!inspectionDate) {
+      alert("Please select a date");
+      return;
+    }
+
+    setRequestingInspection(true);
+    try {
+      const { error } = await createInspectionRequest({
+        listing_id: id!,
+        buyer_id: user.id,
+        buyer_name: user.full_name,
+        preferred_date: inspectionDate,
+        status: 'pending'
+      });
+
+      if (error) throw error;
+
+      alert("Inspection request sent successfully!");
+      setShowInspectionModal(false);
+    } catch (err: any) {
+      alert(err.message || "Failed to send inspection request");
+    } finally {
+      setRequestingInspection(false);
     }
   };
 
@@ -421,10 +454,47 @@ const ListingDetail: React.FC = () => {
       {showInspectionModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="bg-emerald-600 p-8 text-white text-center"><div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4"><Calendar size={32} /></div><h3 className="text-2xl font-bold">Schedule Inspection</h3></div>
+            <div className="bg-emerald-600 p-8 text-white text-center">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
+                <Calendar size={32} />
+              </div>
+              <h3 className="text-2xl font-black font-serif">Schedule Inspection</h3>
+              <p className="text-emerald-100 italic">Request a visit to see {cow.breed}</p>
+            </div>
             <div className="p-8 space-y-6">
-              <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Preferred Date</label><input type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20" /></div>
-              <div className="flex gap-4"><button onClick={() => setShowInspectionModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl">Cancel</button><button onClick={() => setShowInspectionModal(false)} className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100">Request</button></div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Preferred Date</label>
+                <input
+                  type="date"
+                  value={inspectionDate}
+                  onChange={(e) => setInspectionDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
+                />
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowInspectionModal(false)}
+                  disabled={requestingInspection}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRequestInspection}
+                  disabled={requestingInspection || !inspectionDate}
+                  className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {requestingInspection ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Request'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
