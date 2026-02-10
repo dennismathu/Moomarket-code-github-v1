@@ -39,14 +39,25 @@ const Navbar = () => {
             const { data, error } = await getNotifications(user.id);
             if (error) throw error;
 
-            // Logic to determine "unread" - for now just count pending seller requests 
-            // and confirmed buyer requests
-            const unread = data?.filter((n: any) =>
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toDateString();
+
+            const enhancedData = data?.map((n: any) => {
+                const targetDate = new Date(n.preferred_date);
+                const isTomorrow = targetDate.toDateString() === tomorrowStr;
+                const isUpdated = new Date(n.updated_at).getTime() - new Date(n.created_at).getTime() > 2000;
+                return { ...n, isTomorrow, isUpdated };
+            });
+
+            const unread = enhancedData?.filter((n: any) =>
                 (n.listing.seller_id === user.id && n.status === 'pending') ||
-                (n.buyer_id === user.id && n.status === 'confirmed')
+                (n.buyer_id === user.id && n.status === 'confirmed') ||
+                n.isTomorrow
             ).length || 0;
 
-            setNotifications(data || []);
+            setNotifications(enhancedData || []);
             setUnreadCount(unread);
         } catch (err) {
             console.error('Error fetching notifications:', err);
@@ -121,14 +132,21 @@ const Navbar = () => {
                                                                 }}
                                                             >
                                                                 <div className="flex gap-3">
-                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.status === 'confirmed' ? 'bg-blue-100 text-blue-600' :
-                                                                        n.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
-                                                                            'bg-amber-100 text-amber-600'
+                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.isTomorrow ? 'bg-indigo-100 text-indigo-600 animate-pulse' :
+                                                                        n.status === 'confirmed' ? 'bg-blue-100 text-blue-600' :
+                                                                            n.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                                                                                'bg-amber-100 text-amber-600'
                                                                         }`}>
                                                                         <Bell size={14} />
                                                                     </div>
                                                                     <div>
                                                                         <p className="text-xs text-slate-900 leading-tight">
+                                                                            {n.isTomorrow && (
+                                                                                <span className="inline-block px-1.5 py-0.5 bg-indigo-600 text-[8px] text-white font-black uppercase rounded mr-1.5 align-middle">Reminder</span>
+                                                                            )}
+                                                                            {n.isUpdated && (
+                                                                                <span className="inline-block px-1.5 py-0.5 bg-amber-500 text-[8px] text-white font-black uppercase rounded mr-1.5 align-middle">Rescheduled</span>
+                                                                            )}
                                                                             {isSeller && n.status === 'pending' && (
                                                                                 <>New inspection request for your <span className="font-bold">{n.listing.breed}</span></>
                                                                             )}
@@ -142,9 +160,14 @@ const Navbar = () => {
                                                                                 <>Inspection for <span className="font-bold">{n.listing.breed}</span> marked as <span className="text-emerald-600 font-bold">completed</span></>
                                                                             )}
                                                                         </p>
-                                                                        <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-bold">
-                                                                            {new Date(n.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
-                                                                        </p>
+                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                                                                                {new Date(n.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                                                            </p>
+                                                                            <p className={`text-[10px] font-bold ${n.isTomorrow ? 'text-indigo-600' : 'text-slate-500'}`}>
+                                                                                • {new Date(n.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>

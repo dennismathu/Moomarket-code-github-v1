@@ -7,7 +7,7 @@ import {
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
    Trash2, BellRing, Info, X, Droplets, Baby, Loader2, Bookmark, MapPin, Users
 } from 'lucide-react';
-import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, updateInspectionRequestStatus } from '../lib/database';
+import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 import { User, CowListing } from '../types/types';
 
@@ -31,6 +31,9 @@ const SellerDashboard: React.FC = () => {
    const [savedLoading, setSavedLoading] = useState(true);
    const [inspectionRequests, setInspectionRequests] = useState<any[]>([]);
    const [inspectionsLoading, setInspectionsLoading] = useState(true);
+   const [reschedulingRequest, setReschedulingRequest] = useState<any | null>(null);
+   const [newInspectionDate, setNewInspectionDate] = useState('');
+   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
 
    const trustTips = [
       "Complete your profile to increase buyer trust by 40%.",
@@ -143,12 +146,30 @@ const SellerDashboard: React.FC = () => {
 
    const handleUpdateInspectionStatus = async (requestId: string, status: 'confirmed' | 'completed') => {
       try {
-         const { error } = await updateInspectionRequestStatus(requestId, status);
+         const { error } = await updateInspectionRequest(requestId, { status });
          if (error) throw error;
          setInspectionRequests(prev => prev.map(req => req.id === requestId ? { ...req, status } : req));
       } catch (err) {
          console.error('Error updating inspection status:', err);
          alert('Failed to update inspection status');
+      }
+   };
+
+   const handleReschedule = async () => {
+      if (!reschedulingRequest || !newInspectionDate) return;
+      setIsUpdatingDate(true);
+      try {
+         const { error } = await updateInspectionRequest(reschedulingRequest.id, { preferred_date: newInspectionDate });
+         if (error) throw error;
+         setInspectionRequests(prev => prev.map(req => req.id === reschedulingRequest.id ? { ...req, preferred_date: newInspectionDate } : req));
+         setReschedulingRequest(null);
+         setNewInspectionDate('');
+         alert('Inspection rescheduled successfully!');
+      } catch (err) {
+         console.error('Error rescheduling inspection:', err);
+         alert('Failed to reschedule inspection');
+      } finally {
+         setIsUpdatingDate(false);
       }
    };
 
@@ -402,6 +423,16 @@ const SellerDashboard: React.FC = () => {
                                           Mark Completed
                                        </button>
                                     )}
+                                    <button
+                                       onClick={() => {
+                                          setReschedulingRequest(request);
+                                          setNewInspectionDate(request.preferred_date);
+                                       }}
+                                       className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                       title="Reschedule Inspection"
+                                    >
+                                       <Calendar size={18} />
+                                    </button>
                                     <button
                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                        title="Message Buyer"
@@ -719,6 +750,59 @@ const SellerDashboard: React.FC = () => {
                            className="w-full sm:flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 text-sm hover:bg-emerald-700 transition-all"
                         >
                            Yes, Mark as Sold
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+
+         {/* Rescheduling Modal */}
+         {reschedulingRequest && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+               <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+                  <div className="bg-amber-500 p-8 text-white text-center">
+                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
+                        <Calendar size={32} />
+                     </div>
+                     <h3 className="text-2xl font-black font-serif">Reschedule Inspection</h3>
+                     <p className="text-amber-50 italic">Suggest a new date for {reschedulingRequest.listing.breed}</p>
+                  </div>
+                  <div className="p-8 space-y-6">
+                     <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">New Date</label>
+                        <input
+                           type="date"
+                           value={newInspectionDate}
+                           onChange={(e) => setNewInspectionDate(e.target.value)}
+                           min={new Date().toISOString().split('T')[0]}
+                           className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium"
+                        />
+                     </div>
+                     <div className="flex gap-4">
+                        <button
+                           onClick={() => {
+                              setReschedulingRequest(null);
+                              setNewInspectionDate('');
+                           }}
+                           disabled={isUpdatingDate}
+                           className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                        >
+                           Cancel
+                        </button>
+                        <button
+                           onClick={handleReschedule}
+                           disabled={isUpdatingDate || !newInspectionDate || newInspectionDate === reschedulingRequest.preferred_date}
+                           className="flex-1 py-4 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-100 hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                           {isUpdatingDate ? (
+                              <>
+                                 <Loader2 size={20} className="animate-spin" />
+                                 Updating...
+                              </>
+                           ) : (
+                              'Reschedule'
+                           )}
                         </button>
                      </div>
                   </div>

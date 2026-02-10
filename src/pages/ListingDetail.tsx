@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BadgeCheck, Calendar, MapPin, ShieldCheck, Heart, Share2, ArrowLeft, MessageSquare, CalendarDays, Check, Info, AlertTriangle, Truck, Play, X, Baby, Smartphone, Droplets, Phone, Lock, Zap, Loader2, Video, LayoutDashboard } from 'lucide-react';
-import { getListingById, saveListing, unsaveListing, createInspectionRequest } from '../lib/database';
+import { getListingById, saveListing, unsaveListing, createInspectionRequest, getExistingInspectionRequest, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -16,13 +16,27 @@ const ListingDetail: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [inspectionDate, setInspectionDate] = useState('');
   const [requestingInspection, setRequestingInspection] = useState(false);
+  const [existingRequest, setExistingRequest] = useState<any | null>(null);
 
   useEffect(() => {
     fetchListing();
     if (user && id) {
       checkIfSaved();
+      checkIfRequested();
     }
   }, [id, user]);
+
+  const checkIfRequested = async () => {
+    try {
+      const { data } = await getExistingInspectionRequest(user!.id, id!);
+      if (data) {
+        setExistingRequest(data);
+        setInspectionDate(data.preferred_date);
+      }
+    } catch (err) {
+      console.error('Error checking inspection status:', err);
+    }
+  };
 
   const checkIfSaved = async () => {
     try {
@@ -120,19 +134,36 @@ const ListingDetail: React.FC = () => {
 
     setRequestingInspection(true);
     try {
-      const { error } = await createInspectionRequest({
-        listing_id: id!,
-        buyer_id: user.id,
-        preferred_date: inspectionDate,
-        status: 'pending'
-      });
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(inspectionDate);
+      if (selected < today) {
+        alert("Please select a current or future date.");
+        return;
+      }
 
-      if (error) throw error;
-
-      alert("Inspection request sent successfully!");
+      if (existingRequest) {
+        const { error } = await updateInspectionRequest(existingRequest.id, {
+          preferred_date: inspectionDate
+        });
+        if (error) throw error;
+        alert("Inspection date updated successfully!");
+        setExistingRequest({ ...existingRequest, preferred_date: inspectionDate });
+      } else {
+        const { error } = await createInspectionRequest({
+          listing_id: id!,
+          buyer_id: user.id,
+          preferred_date: inspectionDate,
+          status: 'pending'
+        });
+        if (error) throw error;
+        alert("Inspection request sent successfully!");
+        // Refresh check
+        checkIfRequested();
+      }
       setShowInspectionModal(false);
     } catch (err: any) {
-      alert(err.message || "Failed to send inspection request");
+      alert(err.message || "Failed to process inspection request");
     } finally {
       setRequestingInspection(false);
     }
@@ -387,7 +418,12 @@ const ListingDetail: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <button onClick={() => setShowInspectionModal(true)} className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center justify-center gap-3"><CalendarDays size={20} /> Request Inspection</button>
+                    <button
+                      onClick={() => setShowInspectionModal(true)}
+                      className={`w-full py-4 ${existingRequest ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'} text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all`}
+                    >
+                      <CalendarDays size={20} /> {existingRequest ? 'Manage Inspection' : 'Request Inspection'}
+                    </button>
                     <button className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 flex items-center justify-center gap-3"><MessageSquare size={20} /> Message Seller</button>
                   </>
                 )}
@@ -453,16 +489,16 @@ const ListingDetail: React.FC = () => {
       {showInspectionModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="bg-emerald-600 p-8 text-white text-center">
+            <div className={`${existingRequest ? 'bg-amber-500' : 'bg-emerald-600'} p-8 text-white text-center transition-colors`}>
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
                 <Calendar size={32} />
               </div>
-              <h3 className="text-2xl font-black font-serif">Schedule Inspection</h3>
-              <p className="text-emerald-100 italic">Request a visit to see {cow.breed}</p>
+              <h3 className="text-2xl font-black font-serif">{existingRequest ? 'Reschedule Inspection' : 'Schedule Inspection'}</h3>
+              <p className="text-white/80 italic">{existingRequest ? `Current date: ${new Date(existingRequest.preferred_date).toLocaleDateString()}` : `Request a visit to see ${cow.breed}`}</p>
             </div>
             <div className="p-8 space-y-6">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Preferred Date</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{existingRequest ? 'New Date' : 'Preferred Date'}</label>
                 <input
                   type="date"
                   value={inspectionDate}
@@ -481,16 +517,16 @@ const ListingDetail: React.FC = () => {
                 </button>
                 <button
                   onClick={handleRequestInspection}
-                  disabled={requestingInspection || !inspectionDate}
-                  className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={requestingInspection || !inspectionDate || (existingRequest && inspectionDate === existingRequest.preferred_date)}
+                  className={`flex-1 py-4 ${existingRequest ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'} text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2`}
                 >
                   {requestingInspection ? (
                     <>
                       <Loader2 size={20} className="animate-spin" />
-                      Sending...
+                      {existingRequest ? 'Updating...' : 'Sending...'}
                     </>
                   ) : (
-                    'Request'
+                    existingRequest ? 'Reschedule' : 'Request'
                   )}
                 </button>
               </div>

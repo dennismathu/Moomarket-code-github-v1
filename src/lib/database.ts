@@ -667,21 +667,52 @@ export async function getInspectionRequestsBySeller(sellerId: string) {
 }
 
 /**
- * Update inspection request status
+ * Get existing inspection request for a buyer and listing
  */
-export async function updateInspectionRequestStatus(requestId: string, status: 'pending' | 'confirmed' | 'completed') {
+export async function getExistingInspectionRequest(buyerId: string, listingId: string) {
     try {
         const { data, error } = await supabase
             .from('inspection_requests')
-            .update({ status })
+            .select(`
+                *,
+                buyer:users!buyer_id(full_name),
+                listing:cow_listings!inner(breed, price, county, specific_location, seller_id)
+            `)
+            .eq('buyer_id', buyerId)
+            .eq('listing_id', listingId)
+            .maybeSingle()
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error fetching existing inspection request:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Update inspection request (status, date, etc)
+ */
+export async function updateInspectionRequest(requestId: string, updates: Partial<InspectionRequest>) {
+    try {
+        const { data, error } = await supabase
+            .from('inspection_requests')
+            .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', requestId)
-            .select()
+            .select(`
+                *,
+                buyer:users!buyer_id(full_name),
+                listing:cow_listings!inner(breed, price, county, specific_location, seller_id)
+            `)
             .single()
 
         if (error) throw error
         return { data, error: null }
     } catch (error) {
-        console.error('Error updating inspection request status:', error)
+        console.error('Error updating inspection request:', error)
         return { data: null, error: error as Error }
     }
 }
