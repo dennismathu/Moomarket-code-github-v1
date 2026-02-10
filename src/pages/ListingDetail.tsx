@@ -123,7 +123,6 @@ const ListingDetail: React.FC = () => {
       const { error } = await createInspectionRequest({
         listing_id: id!,
         buyer_id: user.id,
-        buyer_name: user.full_name,
         preferred_date: inspectionDate,
         status: 'pending'
       });

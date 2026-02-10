@@ -652,6 +652,7 @@ export async function getInspectionRequestsBySeller(sellerId: string) {
             .from('inspection_requests')
             .select(`
                 *,
+                buyer:users!buyer_id(full_name),
                 listing:cow_listings!inner(breed, price, county, specific_location, seller_id)
             `)
             .eq('listing.seller_id', sellerId)

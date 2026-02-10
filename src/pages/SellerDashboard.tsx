@@ -367,7 +367,7 @@ const SellerDashboard: React.FC = () => {
                                        </span>
                                     </div>
                                     <p className="text-sm text-slate-500 flex items-center gap-2">
-                                       <Users size={14} className="text-slate-400" /> Buyer: {request.buyer_name}
+                                       <Users size={14} className="text-slate-400" /> Buyer: {request.buyer?.full_name || 'Anonymous'}
                                     </p>
                                     <div className="flex items-center gap-4 mt-2">
                                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
