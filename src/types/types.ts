@@ -56,7 +56,10 @@ export interface InspectionRequest {
   buyer?: { full_name: string };
   preferred_date: string;
   status: 'pending' | 'confirmed' | 'completed';
+  rescheduled_by?: 'buyer' | 'seller' | null;
   listing?: Partial<CowListing>;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface User {

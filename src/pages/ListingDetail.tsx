@@ -144,10 +144,11 @@ const ListingDetail: React.FC = () => {
 
       if (existingRequest) {
         const { error } = await updateInspectionRequest(existingRequest.id, {
-          preferred_date: inspectionDate
+          preferred_date: inspectionDate,
+          rescheduled_by: 'buyer'
         });
         if (error) throw error;
-        alert("Inspection date updated successfully!");
+        alert("Viewing date updated successfully!");
         setExistingRequest({ ...existingRequest, preferred_date: inspectionDate });
         // Trigger notification refresh
         window.dispatchEvent(new CustomEvent('refreshNotifications'));
@@ -159,7 +160,7 @@ const ListingDetail: React.FC = () => {
           status: 'pending'
         });
         if (error) throw error;
-        alert("Inspection request sent successfully!");
+        alert("Viewing request sent successfully!");
         // Refresh check
         checkIfRequested();
         // Trigger notification refresh
@@ -426,8 +427,13 @@ const ListingDetail: React.FC = () => {
                       onClick={() => setShowInspectionModal(true)}
                       className={`w-full py-4 ${existingRequest ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'} text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all`}
                     >
-                      <CalendarDays size={20} /> {existingRequest ? 'Manage Inspection' : 'Request Inspection'}
+                      <CalendarDays size={20} /> {existingRequest ? 'Manage Viewing' : 'Request Cow Viewing'}
                     </button>
+                    {!existingRequest && (
+                      <p className="text-xs text-center text-slate-500 font-medium -mt-2 mb-2">
+                        Choose a day to come and see the cow at the farm
+                      </p>
+                    )}
                     <button className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 flex items-center justify-center gap-3"><MessageSquare size={20} /> Message Seller</button>
                   </>
                 )}
@@ -497,8 +503,8 @@ const ListingDetail: React.FC = () => {
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
                 <Calendar size={32} />
               </div>
-              <h3 className="text-2xl font-black font-serif">{existingRequest ? 'Reschedule Inspection' : 'Schedule Inspection'}</h3>
-              <p className="text-white/80 italic">{existingRequest ? `Current date: ${new Date(existingRequest.preferred_date).toLocaleDateString()}` : `Request a visit to see ${cow.breed}`}</p>
+              <h3 className="text-2xl font-black font-serif">{existingRequest ? 'Reschedule Viewing' : 'Schedule Cow Viewing'}</h3>
+              <p className="text-white/80 italic">{existingRequest ? `Current date: ${new Date(existingRequest.preferred_date).toLocaleDateString()}` : `Request a viewing to see ${cow.breed}`}</p>
             </div>
             <div className="p-8 space-y-6">
               <div>

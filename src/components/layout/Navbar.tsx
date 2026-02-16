@@ -59,6 +59,8 @@ const Navbar = () => {
             const unread = enhancedData?.filter((n: any) =>
                 (n.listing.seller_id === user.id && n.status === 'pending') ||
                 (n.buyer_id === user.id && n.status === 'confirmed') ||
+                (n.listing.seller_id === user.id && n.rescheduled_by === 'buyer') ||
+                (n.buyer_id === user.id && n.rescheduled_by === 'seller') ||
                 n.isTomorrow
             ).length || 0;
 
@@ -132,7 +134,13 @@ const Navbar = () => {
                                                                 className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${((isSeller && n.status === 'pending') || (isBuyer && n.status === 'confirmed')) ? 'bg-emerald-50/30' : ''
                                                                     }`}
                                                                 onClick={() => {
-                                                                    navigate(isSeller ? '/dashboard/seller#upcoming-inspections' : '/dashboard/buyer');
+                                                                    if (n.status === 'completed') {
+                                                                        navigate(`/listing/${n.listing_id}`);
+                                                                    } else if (isSeller) {
+                                                                        navigate('/dashboard/seller#upcoming-inspections');
+                                                                    } else {
+                                                                        navigate('/dashboard/buyer');
+                                                                    }
                                                                     setIsNotificationsOpen(false);
                                                                 }}
                                                             >
@@ -152,17 +160,23 @@ const Navbar = () => {
                                                                             {n.isUpdated && (
                                                                                 <span className="inline-block px-1.5 py-0.5 bg-amber-500 text-[8px] text-white font-black uppercase rounded mr-1.5 align-middle">Rescheduled</span>
                                                                             )}
-                                                                            {isSeller && n.status === 'pending' && (
-                                                                                <>New inspection request for your <span className="font-bold">{n.listing.breed}</span></>
+                                                                            {isSeller && n.rescheduled_by === 'buyer' && (
+                                                                                <>Buyer rescheduled viewing for <span className="font-bold">{n.listing.breed}</span> to <span className="font-bold text-amber-600">{new Date(n.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span></>
                                                                             )}
-                                                                            {isBuyer && n.status === 'confirmed' && (
-                                                                                <>Your inspection for <span className="font-bold">{n.listing.breed}</span> has been <span className="text-blue-600 font-bold">confirmed</span>!</>
+                                                                            {isBuyer && n.rescheduled_by === 'seller' && (
+                                                                                <>Farmer suggested a new date for <span className="font-bold">{n.listing.breed}</span>: <span className="font-bold text-amber-600">{new Date(n.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span></>
                                                                             )}
-                                                                            {isBuyer && n.status === 'pending' && (
-                                                                                <>You requested an inspection for <span className="font-bold">{n.listing.breed}</span></>
+                                                                            {isSeller && n.status === 'pending' && !n.rescheduled_by && (
+                                                                                <>New viewing request for your <span className="font-bold">{n.listing.breed}</span></>
+                                                                            )}
+                                                                            {isBuyer && n.status === 'confirmed' && !n.rescheduled_by && (
+                                                                                <>Your viewing for <span className="font-bold">{n.listing.breed}</span> has been <span className="text-blue-600 font-bold">confirmed</span>!</>
+                                                                            )}
+                                                                            {isBuyer && n.status === 'pending' && !n.rescheduled_by && (
+                                                                                <>You requested a viewing for <span className="font-bold">{n.listing.breed}</span></>
                                                                             )}
                                                                             {n.status === 'completed' && (
-                                                                                <>Inspection for <span className="font-bold">{n.listing.breed}</span> marked as <span className="text-emerald-600 font-bold">completed</span></>
+                                                                                <>Viewing for <span className="font-bold">{n.listing.breed}</span> marked as <span className="text-emerald-600 font-bold">completed</span></>
                                                                             )}
                                                                         </p>
                                                                         <div className="flex items-center gap-2 mt-1">
@@ -183,12 +197,12 @@ const Navbar = () => {
                                             <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
                                                 <button
                                                     onClick={() => {
-                                                        navigate(user.role === 'seller' ? '/dashboard/seller' : '/dashboard/buyer');
+                                                        navigate('/notifications');
                                                         setIsNotificationsOpen(false);
                                                     }}
                                                     className="text-[10px] font-bold text-slate-500 hover:text-emerald-600 uppercase tracking-widest"
                                                 >
-                                                    View All Activity
+                                                    View All Notifications
                                                 </button>
                                             </div>
                                         </div>
@@ -254,7 +268,20 @@ const Navbar = () => {
                     </div>
 
                     {/* Mobile menu button */}
-                    <div className="flex items-center md:hidden">
+                    <div className="flex items-center gap-1 md:hidden">
+                        {user && (
+                            <Link
+                                to="/notifications"
+                                className="relative p-2 text-slate-500 hover:text-emerald-600 transition-colors"
+                            >
+                                <Bell size={22} />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </Link>
+                        )}
                         <button onClick={toggleMobileMenu} className="text-slate-500 hover:text-slate-600 p-2">
                             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
@@ -316,7 +343,7 @@ const Navbar = () => {
                             </button>
                             {unreadCount > 0 && (
                                 <Link
-                                    to={user.role === 'seller' ? '/dashboard/seller#upcoming-inspections' : '/dashboard/buyer'}
+                                    to="/notifications"
                                     className="block px-3 py-4 text-sm font-bold text-amber-600 bg-amber-50 rounded-xl mt-2"
                                     onClick={toggleMobileMenu}
                                 >
@@ -326,6 +353,16 @@ const Navbar = () => {
                                     </div>
                                 </Link>
                             )}
+                            <Link
+                                to="/notifications"
+                                className="block px-3 py-4 text-base font-medium text-slate-700 border-t border-slate-100 mt-2"
+                                onClick={toggleMobileMenu}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Bell size={18} className="text-slate-400" />
+                                    All Notifications
+                                </div>
+                            </Link>
                         </>
                     ) : (
                         <Link to="/login" className="block px-3 py-4 text-base font-bold text-emerald-600 border-t border-slate-100" onClick={toggleMobileMenu}>

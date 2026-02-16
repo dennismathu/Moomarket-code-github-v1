@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageSquare, Clock, MapPin, ChevronRight, Bookmark, Search, Shield } from 'lucide-react';
-import { getSavedListings, getInspectionRequestsByBuyer } from '../lib/database';
+import { Heart, MessageSquare, Clock, MapPin, ChevronRight, Bookmark, Search, Shield, CalendarCheck, Calendar } from 'lucide-react';
+import { getSavedListings, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
 const BuyerDashboard: React.FC = () => {
@@ -33,6 +33,18 @@ const BuyerDashboard: React.FC = () => {
     }
   };
 
+  const handleConfirmNewDate = async (inspectionId: string) => {
+    try {
+      const { error } = await updateInspectionRequest(inspectionId, { rescheduled_by: null });
+      if (error) throw error;
+      setInspections(prev => prev.map(i => i.id === inspectionId ? { ...i, rescheduled_by: null } : i));
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
+    } catch (err) {
+      console.error('Error confirming new date:', err);
+      alert('Failed to confirm new date');
+    }
+  };
+
   const fetchSavedListings = async () => {
     try {
       const { data, error } = await getSavedListings(user!.id);
@@ -43,6 +55,24 @@ const BuyerDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Compute upcoming inspections (pending or confirmed, not completed)
+  const upcomingInspections = inspections
+    .filter(i => i.status === 'pending' || i.status === 'confirmed')
+    .sort((a, b) => new Date(a.preferred_date).getTime() - new Date(b.preferred_date).getTime());
+
+  const getCountdownText = (dateStr: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr);
+    target.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { text: 'Overdue', color: 'bg-red-100 text-red-700 border-red-200' };
+    if (diffDays === 0) return { text: 'Today', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    if (diffDays === 1) return { text: 'Tomorrow', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    if (diffDays <= 7) return { text: `In ${diffDays} days`, color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    return { text: `In ${diffDays} days`, color: 'bg-slate-100 text-slate-600 border-slate-200' };
   };
 
   return (
@@ -61,6 +91,90 @@ const BuyerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Upcoming Visits Section */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <Calendar size={20} className="text-blue-600" />
+                  Your Upcoming Viewings
+                </h3>
+                <span className="text-xs font-bold text-slate-400">{upcomingInspections.length} Scheduled</span>
+              </div>
+              {inspectionsLoading ? (
+                <div className="p-12 text-center text-slate-400">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p>Loading your viewings...</p>
+                </div>
+              ) : upcomingInspections.length === 0 ? (
+                <div className="p-12 text-center text-slate-400">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                    <Calendar size={24} className="text-slate-300" />
+                  </div>
+                  <p className="mb-2 font-medium">No upcoming visits scheduled</p>
+                  <Link to="/listings" className="text-emerald-600 font-bold text-sm hover:underline">Browse cows & request viewings</Link>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {upcomingInspections.map(inspection => {
+                    const countdown = getCountdownText(inspection.preferred_date);
+                    const isConfirmed = inspection.status === 'confirmed';
+                    return (
+                      <div
+                        key={inspection.id}
+                        className={`p-5 md:p-6 hover:bg-slate-50/50 transition-colors ${isConfirmed ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-amber-400'}`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex-grow">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${isConfirmed ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                {inspection.status}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${countdown.color}`}>
+                                {countdown.text}
+                              </span>
+                              {inspection.rescheduled_by === 'seller' && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-amber-500 text-white border border-amber-600 animate-pulse">
+                                  New Date
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-bold text-slate-900 text-base">{inspection.listing?.breed || 'Unknown Breed'}</h4>
+                            <div className="flex items-center gap-4 mt-1">
+                              <span className="flex items-center gap-1 text-xs text-slate-500">
+                                <Calendar size={12} className="text-blue-500" />
+                                {new Date(inspection.preferred_date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className="flex items-center gap-1 text-xs text-slate-500">
+                                <MapPin size={12} className="text-emerald-500" />
+                                {inspection.listing?.specific_location || inspection.listing?.county || 'Location N/A'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {inspection.rescheduled_by === 'seller' ? (
+                              <button
+                                onClick={() => handleConfirmNewDate(inspection.id)}
+                                className="px-4 py-2.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 transition-all shadow-sm flex items-center gap-1.5"
+                              >
+                                <CalendarCheck size={14} /> Confirm Date
+                              </button>
+                            ) : (
+                              <Link
+                                to={`/listing/${inspection.listing_id}`}
+                                className="px-4 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                              >
+                                View Listing <ChevronRight size={14} />
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
@@ -117,7 +231,7 @@ const BuyerDashboard: React.FC = () => {
               <div className="p-6 border-b border-slate-100">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
                   <Clock size={20} className="text-blue-600" />
-                  Active Inspections
+                  Active Viewings
                 </h3>
               </div>
               {inspectionsLoading ? (
@@ -127,28 +241,44 @@ const BuyerDashboard: React.FC = () => {
                 </div>
               ) : inspections.length === 0 ? (
                 <div className="p-8 text-center text-slate-400">
-                  <p className="text-xs">No active inspection requests.</p>
+                  <p className="text-xs">No active viewing requests.</p>
                 </div>
               ) : (
                 <div className="p-6 space-y-4">
                   {inspections.map(inspection => (
-                    <div key={inspection.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div key={inspection.id} className={`p-4 rounded-2xl border ${inspection.rescheduled_by === 'seller' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
                       <div className="flex justify-between items-start mb-2">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border ${inspection.status === 'confirmed' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                          inspection.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                            'bg-amber-100 text-amber-700 border-amber-200'
-                          }`}>
-                          {inspection.status}
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-400">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border ${inspection.status === 'confirmed' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            inspection.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                              'bg-amber-100 text-amber-700 border-amber-200'
+                            }`}>
+                            {inspection.status}
+                          </span>
+                          {inspection.rescheduled_by === 'seller' && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-amber-500 text-white border border-amber-600 animate-pulse">
+                              New Date Proposed
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-[10px] font-bold ${inspection.rescheduled_by === 'seller' ? 'text-amber-600' : 'text-slate-400'}`}>
                           {new Date(inspection.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).toUpperCase()}
                         </span>
                       </div>
                       <h4 className="font-bold text-slate-900 mb-0.5 text-sm">{inspection.listing?.breed || 'Unknown Breed'}</h4>
                       <p className="text-[10px] text-slate-500 mb-3">{inspection.listing?.specific_location || inspection.listing?.county || 'Location Unavailable'}</p>
-                      <button className="w-full py-2 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg hover:shadow-sm transition-all">
-                        {inspection.status === 'confirmed' ? 'Contact Farmer' : 'View Details'}
-                      </button>
+                      {inspection.rescheduled_by === 'seller' ? (
+                        <button
+                          onClick={() => handleConfirmNewDate(inspection.id)}
+                          className="w-full py-2.5 bg-amber-500 text-white text-[10px] font-bold rounded-lg hover:bg-amber-600 transition-all shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          <CalendarCheck size={14} /> Confirm New Date
+                        </button>
+                      ) : (
+                        <button className="w-full py-2 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg hover:shadow-sm transition-all">
+                          {inspection.status === 'confirmed' ? 'Contact Farmer' : 'View Details'}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -630,7 +630,7 @@ export async function getInspectionRequestsByBuyer(buyerId: string) {
             .from('inspection_requests')
             .select(`
                 *,
-                listing:cow_listings(breed, price, county, specific_location)
+                listing:cow_listings(breed, price, county, specific_location, seller_id)
             `)
             .eq('buyer_id', buyerId)
             .order('preferred_date', { ascending: true })

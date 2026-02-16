@@ -7,7 +7,7 @@ import {
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
    Trash2, BellRing, Info, X, Droplets, Baby, Loader2, Bookmark, MapPin, Users
 } from 'lucide-react';
-import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, updateInspectionRequest } from '../lib/database';
+import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 import { User, CowListing } from '../types/types';
 
@@ -30,6 +30,7 @@ const SellerDashboard: React.FC = () => {
    const [savedCows, setSavedCows] = useState<any[]>([]);
    const [savedLoading, setSavedLoading] = useState(true);
    const [inspectionRequests, setInspectionRequests] = useState<any[]>([]);
+   const [buyerInspectionRequests, setBuyerInspectionRequests] = useState<any[]>([]);
    const [inspectionsLoading, setInspectionsLoading] = useState(true);
    const [reschedulingRequest, setReschedulingRequest] = useState<any | null>(null);
    const [newInspectionDate, setNewInspectionDate] = useState('');
@@ -82,9 +83,22 @@ const SellerDashboard: React.FC = () => {
       if (user) {
          fetchSellerListings();
          fetchSavedListings();
+         fetchSavedListings();
          fetchInspectionRequests();
+         fetchBuyerInspectionRequests();
       }
    }, [user]);
+
+   const fetchBuyerInspectionRequests = async () => {
+      if (!user) return;
+      try {
+         const { data, error } = await getInspectionRequestsByBuyer(user.id);
+         if (error) throw error;
+         setBuyerInspectionRequests(data || []);
+      } catch (err) {
+         console.error('Error fetching buyer inspection requests:', err);
+      }
+   };
 
    const fetchInspectionRequests = async () => {
       if (!user) return;
@@ -133,6 +147,37 @@ const SellerDashboard: React.FC = () => {
       navigate(`/seller/new-listing?edit=${id}`);
    };
 
+   const handleConfirmNewDate = async (requestId: string) => {
+      if (!user) return;
+
+      // Optimistic update
+      setBuyerInspectionRequests(prev => prev.map(req => {
+         if (req.id === requestId) {
+            return {
+               ...req,
+               status: 'confirmed',
+               rescheduled_by: null // Clear the flag
+            };
+         }
+         return req;
+      }));
+
+      try {
+         const { error } = await updateInspectionRequest(requestId, {
+            status: 'confirmed',
+            rescheduled_by: null
+         });
+
+         if (error) throw error;
+         // Refresh to ensure consistent state
+         fetchBuyerInspectionRequests();
+      } catch (err) {
+         console.error('Error confirming new date:', err);
+         // Revert on error would be ideal, but for now just refetch
+         fetchBuyerInspectionRequests();
+      }
+   };
+
    const handleMarkAsSold = () => {
       if (selectedCowForSold) {
          setSellerListings(prev => prev.map(c => c.id === selectedCowForSold.id ? { ...c, status: 'sold' } : c));
@@ -146,14 +191,14 @@ const SellerDashboard: React.FC = () => {
 
    const handleUpdateInspectionStatus = async (requestId: string, status: 'confirmed' | 'completed') => {
       try {
-         const { error } = await updateInspectionRequest(requestId, { status });
+         const { error } = await updateInspectionRequest(requestId, { status, rescheduled_by: null });
          if (error) throw error;
-         setInspectionRequests(prev => prev.map(req => req.id === requestId ? { ...req, status } : req));
+         setInspectionRequests(prev => prev.map(req => req.id === requestId ? { ...req, status, rescheduled_by: null } : req));
          // Trigger notification refresh
          window.dispatchEvent(new CustomEvent('refreshNotifications'));
       } catch (err) {
          console.error('Error updating inspection status:', err);
-         alert('Failed to update inspection status');
+         alert('Failed to update viewing status');
       }
    };
 
@@ -161,17 +206,17 @@ const SellerDashboard: React.FC = () => {
       if (!reschedulingRequest || !newInspectionDate) return;
       setIsUpdatingDate(true);
       try {
-         const { error } = await updateInspectionRequest(reschedulingRequest.id, { preferred_date: newInspectionDate });
+         const { error } = await updateInspectionRequest(reschedulingRequest.id, { preferred_date: newInspectionDate, rescheduled_by: 'seller' });
          if (error) throw error;
          setInspectionRequests(prev => prev.map(req => req.id === reschedulingRequest.id ? { ...req, preferred_date: newInspectionDate } : req));
          // Trigger notification refresh
          window.dispatchEvent(new CustomEvent('refreshNotifications'));
          setReschedulingRequest(null);
          setNewInspectionDate('');
-         alert('Inspection rescheduled successfully!');
+         alert('Viewing rescheduled successfully!');
       } catch (err) {
          console.error('Error rescheduling inspection:', err);
-         alert('Failed to reschedule inspection');
+         alert('Failed to reschedule viewing');
       } finally {
          setIsUpdatingDate(false);
       }
@@ -240,7 +285,7 @@ const SellerDashboard: React.FC = () => {
                   className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 group hover:border-amber-500 transition-colors text-left w-full"
                >
                   <div className="flex justify-between items-start mb-2">
-                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Inspections</p>
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Viewings</p>
                      <Calendar size={16} className="text-slate-300 group-hover:text-amber-500" />
                   </div>
                   <p className="text-3xl font-black text-emerald-600">{inspectionRequests.filter(r => r.status === 'pending').length}</p>
@@ -256,6 +301,93 @@ const SellerDashboard: React.FC = () => {
                   <p className="text-3xl font-black text-blue-600">12</p>
                </div>
             </div>
+
+            {/* Seller Upcoming Visits (As Buyer) */}
+            {buyerInspectionRequests.filter(r => r.status !== 'completed').length > 0 && (
+               <div id="your-visits" className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8 scroll-mt-24">
+                  <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                     <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <Calendar className="text-blue-600" size={20} />
+                        Your Upcoming Viewings (To Other Farms)
+                     </h3>
+                     <span className="text-xs font-bold text-slate-400">
+                        {buyerInspectionRequests.filter(r => r.status !== 'completed').length} Active
+                     </span>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                     {buyerInspectionRequests
+                        .filter(r => r.status !== 'completed')
+                        .sort((a, b) => new Date(a.preferred_date).getTime() - new Date(b.preferred_date).getTime())
+                        .map(request => {
+                           const today = new Date();
+                           today.setHours(0, 0, 0, 0);
+                           const target = new Date(request.preferred_date);
+                           target.setHours(0, 0, 0, 0);
+                           const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                           let countdownText = `In ${diffDays} days`;
+                           let countdownColor = 'bg-slate-100 text-slate-600 border-slate-200';
+                           if (diffDays < 0) { countdownText = 'Overdue'; countdownColor = 'bg-red-100 text-red-700 border-red-200'; }
+                           else if (diffDays === 0) { countdownText = 'Today'; countdownColor = 'bg-emerald-100 text-emerald-700 border-emerald-200'; }
+                           else if (diffDays === 1) { countdownText = 'Tomorrow'; countdownColor = 'bg-indigo-100 text-indigo-700 border-indigo-200'; }
+                           else if (diffDays <= 7) { countdownColor = 'bg-blue-100 text-blue-700 border-blue-200'; }
+
+                           return (
+                              <div
+                                 key={request.id}
+                                 className={`p-5 md:p-6 hover:bg-slate-50/50 transition-colors ${request.status === 'confirmed' ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-amber-400'}`}
+                              >
+                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="flex-grow">
+                                       <div className="flex items-center gap-2 flex-wrap mb-2">
+                                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${request.status === 'confirmed' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                             {request.status}
+                                          </span>
+                                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${countdownColor}`}>
+                                             {countdownText}
+                                          </span>
+                                       </div>
+                                       <Link to={`/listing/${request.listing_id}`} className="font-bold text-slate-900 text-base hover:text-emerald-600 transition-colors">
+                                          {request.listing.breed}
+                                       </Link>
+                                       <div className="flex items-center gap-4 mt-1">
+                                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                                             <Calendar size={12} className="text-blue-500" />
+                                             {new Date(request.preferred_date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
+                                          </span>
+                                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                                             <MapPin size={12} className="text-emerald-500" />
+                                             {request.listing.county}
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                       {request.status === 'pending' && request.rescheduled_by === 'seller' && (
+                                          <div className="flex items-center gap-2">
+                                             <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full border border-amber-200 animate-pulse">
+                                                New Date Proposed
+                                             </span>
+                                             <button
+                                                onClick={() => handleConfirmNewDate(request.id)}
+                                                className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors"
+                                             >
+                                                Confirm New Date
+                                             </button>
+                                          </div>
+                                       )}
+                                       <Link
+                                          to={`/listing/${request.listing_id}`}
+                                          className="px-4 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                                       >
+                                          View Cow <ChevronRight size={14} />
+                                       </Link>
+                                    </div>
+                                 </div>
+                              </div>
+                           );
+                        })}
+                  </div>
+               </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                {/* Main Feed */}
@@ -369,7 +501,7 @@ const SellerDashboard: React.FC = () => {
                      <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                         <h3 className="font-bold text-slate-900 flex items-center gap-2">
                            <Calendar className="text-emerald-600" size={20} />
-                           Upcoming Inspections
+                           Incoming Viewing Requests
                         </h3>
                         <span className="text-xs font-bold text-slate-400">{inspectionRequests.filter(r => r.status !== 'completed').length} Pending / Confirmed</span>
                      </div>
@@ -381,14 +513,14 @@ const SellerDashboard: React.FC = () => {
                            </div>
                         ) : inspectionRequests.length === 0 ? (
                            <div className="p-12 text-center text-slate-400">
-                              <p className="text-sm">No inspection requests yet.</p>
+                              <p className="text-sm">No viewing requests yet.</p>
                            </div>
                         ) : (
                            inspectionRequests.map(request => (
                               <div key={request.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                                  <div>
                                     <div className="flex items-center gap-3 mb-1">
-                                       <h4 className="font-bold text-slate-900">{request.listing.breed}</h4>
+                                       <Link to={`/listing/${request.listing_id}`} className="font-bold text-slate-900 hover:text-emerald-600 transition-colors">{request.listing.breed}</Link>
                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border ${request.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                           request.status === 'completed' ? 'bg-slate-100 text-slate-500 border-slate-200' :
                                              'bg-amber-50 text-amber-600 border-amber-100'
@@ -411,13 +543,18 @@ const SellerDashboard: React.FC = () => {
                                     </div>
                                  </div>
                                  <div className="flex items-center gap-2">
-                                    {request.status === 'pending' && (
+                                    {request.status === 'pending' && request.rescheduled_by !== 'seller' && (
                                        <button
                                           onClick={() => handleUpdateInspectionStatus(request.id, 'confirmed')}
                                           className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-100"
                                        >
                                           Confirm Visit
                                        </button>
+                                    )}
+                                    {request.status === 'pending' && request.rescheduled_by === 'seller' && (
+                                       <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-widest rounded-full border border-amber-100 animate-pulse">
+                                          Waiting for Buyer
+                                       </span>
                                     )}
                                     {request.status === 'confirmed' && (
                                        <button
@@ -433,7 +570,7 @@ const SellerDashboard: React.FC = () => {
                                           setNewInspectionDate(request.preferred_date);
                                        }}
                                        className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                                       title="Reschedule Inspection"
+                                       title="Reschedule Viewing"
                                     >
                                        <Calendar size={18} />
                                     </button>

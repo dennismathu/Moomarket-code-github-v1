@@ -20,6 +20,7 @@ import SellerOnboarding from './pages/SellerOnboarding';
 import NewListing from './pages/NewListing';
 import SellerDashboard from './pages/SellerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
+import NotificationHub from './pages/NotificationHub';
 import AdminPanel from './pages/AdminPanel';
 
 const Toast: React.FC = () => {
@@ -100,6 +101,16 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute requireRole="buyer">
                     <BuyerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected routes - Notifications */}
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationHub />
                   </ProtectedRoute>
                 }
               />
