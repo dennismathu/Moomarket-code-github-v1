@@ -10,6 +10,7 @@ interface AuthContextType {
     loading: boolean
     signUp: (email: string, password: string, fullName: string, role: 'buyer' | 'seller') => Promise<{ error: Error | null }>
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+    signInWithGoogle: () => Promise<{ error: Error | null }>
     resetPassword: (email: string) => Promise<{ error: Error | null }>
     updatePassword: (password: string) => Promise<{ error: Error | null }>
     updateProfile: (updates: Partial<User>) => Promise<{ error: Error | null }>
@@ -182,6 +183,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    // Sign in with Google
+    const signInWithGoogle = async () => {
+        try {
+            console.log('Attempting Google Sign-In');
+            const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${siteUrl}`,
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent',
+                    },
+                },
+            });
+
+            if (error) {
+                console.error('Supabase Google signIn error:', error);
+                throw error;
+            }
+
+            console.log('Google signIn initiated:', data);
+            return { error: null };
+        } catch (error) {
+            console.error('Catch Google signIn error:', error);
+            return { error: error as Error };
+        }
+    };
+
     // Reset password
     const resetPassword = async (email: string) => {
         try {
@@ -275,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signUp,
         signIn,
+        signInWithGoogle,
         resetPassword,
         updatePassword,
         updateProfile,
