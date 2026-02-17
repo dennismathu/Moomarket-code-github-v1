@@ -178,6 +178,15 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-3 bg-white text-emerald-700 font-bold rounded-xl border border-emerald-100 hover:bg-emerald-50 transition-all flex items-center gap-2"
+            >
+              Have Questions? View FAQs <ArrowRight size={18} />
+            </button>
+          </div>
+
           <div className="mt-20 p-12 bg-emerald-900 rounded-[3rem] text-center shadow-2xl relative overflow-hidden group">
             <div className="relative z-10">
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-8">Start browsing our verified dairy herd today</h3>
@@ -187,6 +196,53 @@ const LandingPage: React.FC = () => {
             </div>
             {/* Abstract background cow shape or pattern */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none"></div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-24 bg-white scroll-mt-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-extrabold text-slate-900">Frequently Asked Questions</h2>
+            <p className="mt-4 text-xl text-slate-500">Everything you need to know about MooMarket.</p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: "How does MooMarket verify cows?",
+                a: "Every cow listing requires a signed veterinary health report from a registered clinic. We manually review these documents before any listing is approved for the public marketplace."
+              },
+              {
+                q: "Can I see the cow before paying?",
+                a: "Yes! We strongly encourage and facilitate physical inspections. Use the 'Request Cow Viewing' button on any listing to schedule a convenient time to visit the farm."
+              },
+              {
+                q: "How do I pay for a cow?",
+                a: "MooMarket connects buyers and sellers directly. Payments are handled outside the platform. We recommend completing payments only after a successful physical inspection of the animal."
+              },
+              {
+                q: "What if a seller is dishonest?",
+                a: "Trust is our top priority. You can report suspicious listings directly. Verified sellers with successful histories earn badges, helping you identify the most reliable farmers."
+              },
+              {
+                q: "Is there professional transport available?",
+                a: "Safe animal transport is coming soon! Our 'Coming Soon' feature will allow you to book verified, animal-friendly transport services directly through the platform."
+              }
+            ].map((faq, i) => (
+              <details key={i} className="group bg-slate-50 rounded-2xl border border-slate-100 open:bg-white open:shadow-md transition-all">
+                <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
+                  <span className="font-bold text-slate-900">{faq.q}</span>
+                  <span className="text-emerald-600 transition-transform group-open:rotate-180">
+                    <CheckCircle2 size={20} />
+                  </span>
+                </summary>
+                <div className="px-6 pb-6 text-slate-600 leading-relaxed font-medium">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
           </div>
         </div>
       </section>

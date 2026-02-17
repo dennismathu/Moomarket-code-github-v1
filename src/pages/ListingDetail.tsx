@@ -353,22 +353,23 @@ const ListingDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative group cursor-pointer">
+            <div className="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative group cursor-not-allowed select-none">
+              {/* Coming Soon Overlay */}
+              <div className="absolute inset-0 z-10 bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center text-white mb-4 border border-white/20">
+                  <Video size={32} />
+                </div>
+                <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg mb-2">Coming Soon</span>
+                <h4 className="text-xl font-bold text-white mb-2 leading-tight">Video Verification</h4>
+                <p className="text-slate-300 text-xs max-w-[240px]">We are working with farmers to bring you high-quality video proof of every listing.</p>
+              </div>
+
               {cowVideo ? (
-                <>
-                  <video src={cowVideo} className="w-full h-64 md:h-96 object-cover opacity-60" poster={cowPhotos[0]} />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.5)] group-hover:scale-110 transition-transform">
-                      <Play size={40} fill="currentColor" className="ml-1" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-white">
-                    <div><h4 className="font-bold text-lg">Verified Video Proof</h4><p className="text-sm text-slate-300">Walking and milking clip included</p></div>
-                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg text-xs font-bold border border-white/20">Video</div>
-                  </div>
-                </>
+                <div className="pointer-events-none opacity-40">
+                  <video src={cowVideo} className="w-full h-64 md:h-96 object-cover" poster={cowPhotos[0]} />
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-64 md:h-96 text-slate-500">
+                <div className="flex flex-col items-center justify-center h-64 md:h-96 text-slate-700 pointer-events-none">
                   <Video size={48} className="mb-4 opacity-20" />
                   <p className="font-bold">No verified video proof yet</p>
                 </div>
