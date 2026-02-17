@@ -34,6 +34,8 @@ const ListingDetail: React.FC = () => {
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [showContact, setShowContact] = useState(false);
+  const [showLocation, setShowLocation] = useState(false);
 
   useEffect(() => {
     fetchListing();
@@ -544,55 +546,74 @@ const ListingDetail: React.FC = () => {
                         Choose a day to come and see the cow at the farm
                       </p>
                     )}
-                    <button className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 flex items-center justify-center gap-3"><MessageSquare size={20} /> Message Seller</button>
+                    <button
+                      disabled
+                      className="w-full py-4 bg-slate-50 text-slate-400 font-bold rounded-xl flex items-center justify-center gap-3 cursor-not-allowed"
+                    >
+                      <MessageSquare size={20} /> Message Seller (Coming Soon)
+                    </button>
                   </>
                 )}
 
-                {/* Premium Features Section */}
+                {/* Premium Features Section -> Free Reveal for now */}
                 <div className="mt-8 pt-8 border-t border-slate-100 space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Zap size={14} className="text-amber-500 fill-amber-500" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Premium Access</span>
+                      <Zap size={14} className="text-emerald-600 fill-emerald-600" />
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Free Access</span>
                     </div>
-                    <div className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black uppercase rounded tracking-wider border border-amber-200">Locked</div>
+                    <div className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase rounded tracking-wider border border-emerald-200">Limited Offer</div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="group relative overflow-hidden">
                       <div className="flex items-start gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 transition-all">
-                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-emerald-600 shrink-0">
                           <MapPin size={20} />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Exact Farm Location</p>
-                          <div className="text-sm font-bold text-slate-900 blur-[4px] select-none pointer-events-none">Plot 42A, Green Valley View Road...</div>
+                          <div className={`text-sm font-bold text-slate-900 ${!showLocation ? 'blur-[4px] select-none' : ''}`}>
+                            {showLocation ? (cow.specific_location || "Location not specified") : (cow.specific_location ? "Reveal to see location" : "Location not specified...")}
+                          </div>
                         </div>
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Lock size={16} className="text-slate-400" />
-                        </div>
+                        {!showLocation && cow.specific_location && (
+                          <button
+                            onClick={() => setShowLocation(true)}
+                            className="bg-emerald-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                          >
+                            Reveal
+                          </button>
+                        )}
                       </div>
                     </div>
 
                     <div className="group relative overflow-hidden">
                       <div className="flex items-start gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 transition-all">
-                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-emerald-600 shrink-0">
                           <Phone size={20} />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Direct Call Farmer</p>
-                          <div className="text-sm font-bold text-slate-900 blur-[4px] select-none pointer-events-none">+254 712 345 XXX</div>
+                          <div className={`text-sm font-bold text-slate-900 ${!showContact ? 'blur-[4px] select-none' : ''}`}>
+                            {showContact ? (seller?.phone_number || "No contact info") : (seller?.phone_number ? "+254 712 345 XXX" : "No contact info...")}
+                          </div>
                         </div>
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Lock size={16} className="text-slate-400" />
-                        </div>
+                        {!showContact && seller?.phone_number && (
+                          <button
+                            onClick={() => setShowContact(true)}
+                            className="bg-emerald-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                          >
+                            Reveal
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <button className="w-full py-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2">
-                    Upgrade to Contact Directly
-                  </button>
+                  <p className="text-[10px] text-center text-slate-400 font-medium italic">
+                    Farmer contact details are currently free to access for a limited time.
+                  </p>
                 </div>
               </div>
               <div className="pt-6 border-t border-slate-100">
