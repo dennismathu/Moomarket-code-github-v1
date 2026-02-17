@@ -470,7 +470,7 @@ const ListingDetail: React.FC = () => {
                       if (!cow) return;
 
                       const shareUrl = `${window.location.origin}/api/share?id=${cow.id}`;
-                      const shareText = `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}\nLocation: ${cow.county}`;
+                      const shareText = `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}`;
                       const shareTitle = `Moomarket - ${cow.breed} for Sale`;
 
                       const shareData = {
@@ -504,7 +504,7 @@ const ListingDetail: React.FC = () => {
                       onClose={() => setIsShareModalOpen(false)}
                       shareData={{
                         title: `Moomarket - ${cow.breed} for Sale`,
-                        text: `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}\nLocation: ${cow.county}`,
+                        text: `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}`,
                         url: `${window.location.origin}/api/share?id=${cow.id}`,
                         image: cow.media?.[0]?.media_url || ''
                       }}

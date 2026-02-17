@@ -1,37 +1,46 @@
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
-    const { id } = req.query;
+  const { id } = req.query;
 
-    if (!id) {
-        return res.status(400).send('Missing listing ID');
+  if (!id) {
+    return res.status(400).send('Missing listing ID');
+  }
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res.status(500).send('Missing Supabase configuration');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  const { data: cow, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !cow) {
+    return res.status(404).send('Listing not found');
+  }
+
+  const title = `${cow.breed} for Sale - KSh ${cow.price?.toLocaleString()} | MooMarket`;
+  const description = `${cow.breed} cow in ${cow.county}. View details, photos, and request a viewing on MooMarket Kenya.`;
+
+  // Ensure image URL is absolute and valid
+  let image = 'https://moomarket.vercel.app/og-image.jpg';
+  if (cow.media && Array.isArray(cow.media) && cow.media.length > 0) {
+    const firstMedia = cow.media.find(m => m.media_type === 'photo') || cow.media[0];
+    if (firstMedia && firstMedia.media_url) {
+      image = firstMedia.media_url;
     }
+  }
 
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const url = `https://moomarket.vercel.app/listing/${id}`;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-        return res.status(500).send('Missing Supabase configuration');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    const { data: cow, error } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-    if (error || !cow) {
-        return res.status(404).send('Listing not found');
-    }
-
-    const title = `${cow.breed} for Sale - KSh ${cow.price?.toLocaleString()} | MooMarket`;
-    const description = `${cow.breed} cow in ${cow.county}. View details, photos, and request a viewing on MooMarket Kenya.`;
-    const image = cow.media?.[0]?.media_url || 'https://moomarket.vercel.app/og-image.jpg'; // Fallback image
-    const url = `https://moomarket.vercel.app/listing/${id}`;
-
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -57,6 +66,6 @@ export default async function handler(req, res) {
     </html>
   `;
 
-    res.setHeader('Content-Type', 'text/html');
-    res.status(200).send(html);
+  res.setHeader('Content-Type', 'text/html');
+  res.status(200).send(html);
 }
