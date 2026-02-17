@@ -479,7 +479,10 @@ const ListingDetail: React.FC = () => {
                         url: shareUrl
                       };
 
-                      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                      // Detect mobile devices to use native sharing
+                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+                      if (isMobile && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                         try {
                           await navigator.share(shareData);
                           await trackShareEvent(cow.id, 'native');
@@ -491,6 +494,7 @@ const ListingDetail: React.FC = () => {
                           }
                         }
                       } else {
+                        // On desktop or when native share is unavailable/fails, use our custom modal
                         setIsShareModalOpen(true);
                       }
                     }}

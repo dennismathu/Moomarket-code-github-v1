@@ -763,3 +763,24 @@ export async function getNotifications(userId: string) {
         return { data: null, error: error as Error }
     }
 }
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+/**
+ * Track a sharing event
+ */
+export async function trackShareEvent(listingId: string, platform: string) {
+    try {
+        const { error } = await supabase
+            .from('sharing_analytics')
+            .insert([{ listing_id: listingId, platform }])
+
+        if (error) throw error
+        return { error: null }
+    } catch (error) {
+        console.error('Error tracking share event:', error)
+        return { error: error as Error }
+    }
+}
