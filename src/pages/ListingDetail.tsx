@@ -458,8 +458,8 @@ const ListingDetail: React.FC = () => {
                       onClick={handleToggleSave}
                       disabled={isSaving}
                       className={`p-3 rounded-2xl border transition-all ${isSaved
-                          ? 'bg-red-50 border-red-100 text-red-500'
-                          : 'bg-white border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'
+                        ? 'bg-red-50 border-red-100 text-red-500'
+                        : 'bg-white border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'
                         }`}
                     >
                       <Heart size={20} fill={isSaved ? "currentColor" : "none"} className={isSaving ? 'opacity-50' : ''} />
@@ -469,7 +469,7 @@ const ListingDetail: React.FC = () => {
                     onClick={async () => {
                       if (!cow) return;
 
-                      const shareUrl = `${window.location.origin}/listing/${cow.id}?utm_source=share`;
+                      const shareUrl = `${window.location.origin}/api/share?id=${cow.id}`;
                       const shareText = `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}\nLocation: ${cow.county}`;
                       const shareTitle = `Moomarket - ${cow.breed} for Sale`;
 
@@ -479,7 +479,7 @@ const ListingDetail: React.FC = () => {
                         url: shareUrl
                       };
 
-                      if (navigator.share) {
+                      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                         try {
                           await navigator.share(shareData);
                           await trackShareEvent(cow.id, 'native');
@@ -505,7 +505,7 @@ const ListingDetail: React.FC = () => {
                       shareData={{
                         title: `Moomarket - ${cow.breed} for Sale`,
                         text: `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}\nLocation: ${cow.county}`,
-                        url: `${window.location.origin}/listing/${cow.id}?utm_source=share`,
+                        url: `${window.location.origin}/api/share?id=${cow.id}`,
                         image: cow.media?.[0]?.media_url || ''
                       }}
                       onShareTrack={(platform) => trackShareEvent(cow.id, platform)}
