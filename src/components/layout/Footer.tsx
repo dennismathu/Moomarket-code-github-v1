@@ -42,7 +42,7 @@ const Footer: React.FC = () => {
                 </div>
             </div>
             <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-800 text-center text-xs">
-                &copy; 2025 MooMarket Kenya. All rights reserved.
+                &copy; 2026 MooMarket Kenya. All rights reserved.
             </div>
         </footer>
     );
