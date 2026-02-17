@@ -564,13 +564,29 @@ export async function getAdminMetrics() {
             .order('view_count', { ascending: false })
             .limit(5);
 
+        // Fetch sharing stats
+        const { data: shareData } = await supabase
+            .from('sharing_analytics')
+            .select('platform, listing_id');
+
+        const platformStats = (shareData || []).reduce((acc: any, curr: any) => {
+            acc[curr.platform] = (acc[curr.platform] || 0) + 1;
+            return acc;
+        }, {});
+
+        const formattedPlatforms = Object.entries(platformStats)
+            .map(([label, value]) => ({ label, value }))
+            .sort((a: any, b: any) => (b.value as number) - (a.value as number));
+
         return {
             data: {
                 totalListings: totalListings || 0,
                 totalUsers: totalUsers || 0,
                 topBreeds: formattedBreeds,
                 topLocations: formattedLocations,
-                mostViewedListings: mostViewedListings || []
+                mostViewedListings: mostViewedListings || [],
+                totalShares: shareData?.length || 0,
+                platformStats: formattedPlatforms
             },
             error: null
         };
@@ -761,5 +777,36 @@ export async function getNotifications(userId: string) {
     } catch (error) {
         console.error('Error fetching notifications:', error)
         return { data: null, error: error as Error }
+    }
+}
+
+// ============================================
+// ANALYTICS & SHARING
+// ============================================
+
+/**
+ * Track a share event
+ */
+export async function trackShareEvent(listingId: string, platform: string) {
+    try {
+        const { error } = await supabase
+            .from('sharing_analytics')
+            .insert([
+                {
+                    listing_id: listingId,
+                    platform: platform,
+                },
+            ])
+
+        if (error) {
+            // If table doesn't exist, we might get an error. 
+            // In a real MVP, we might want to log this silently or handle it.
+            console.warn('Sharing analytics table might not exist:', error.message)
+            return { error }
+        }
+        return { error: null }
+    } catch (error) {
+        console.error('Error tracking share event:', error)
+        return { error: error as Error }
     }
 }

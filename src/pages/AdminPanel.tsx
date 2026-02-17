@@ -93,8 +93,8 @@ const AdminPanel: React.FC = () => {
               {[
                 { label: 'Total Listings', value: metrics?.totalListings, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
                 { label: 'Total Users', value: metrics?.totalUsers, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'Total Shares', value: metrics?.totalShares || 0, icon: Share2, color: 'text-blue-600', bg: 'bg-blue-50' },
                 { label: 'Avg Views/Listing', value: (metrics?.totalListings ? (metrics.mostViewedListings.reduce((a: any, b: any) => a + b.view_count, 0) / 5).toFixed(0) : 0), icon: Eye, color: 'text-purple-600', bg: 'bg-purple-50' },
-                { label: 'Platform Growth', value: '+12%', icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                   <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
@@ -181,6 +181,32 @@ const AdminPanel: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Sharing Analytics Section */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <Share2 size={18} className="text-blue-600" /> Sharing Insights
+                </h3>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Platform Distribution</span>
+              </div>
+              <div className="p-8">
+                {metrics?.platformStats && metrics.platformStats.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+                    {metrics.platformStats.map((item: any, i: number) => (
+                      <div key={i} className="text-center p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all hover:border-blue-200 hover:bg-blue-50 group">
+                        <p className="text-2xl font-black text-slate-900 group-hover:text-blue-600 transition-colors">{item.value}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{item.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-400 font-medium italic">
+                    No sharing data captured yet.
+                  </div>
+                )}
               </div>
             </div>
           </div>
