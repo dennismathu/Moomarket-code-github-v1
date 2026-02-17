@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { BadgeCheck, Calendar, MapPin, ShieldCheck, Heart, Share2, ArrowLeft, MessageSquare, CalendarDays, Check, Info, AlertTriangle, Truck, Play, X, Baby, Smartphone, Droplets, Phone, Lock, Zap, Loader2, Video, LayoutDashboard } from 'lucide-react';
-import { getListingById, saveListing, unsaveListing, createInspectionRequest, getExistingInspectionRequest, updateInspectionRequest } from '../lib/database';
-import { useAuth } from '../contexts/AuthContext';
+import { MapPin, Heart, Share2, Info, ChevronLeft, ChevronRight, MessageSquare, Calendar, ShieldCheck, ArrowRight, Home, LayoutDashboard, Search, Settings, User } from 'lucide-react'
+import { getListingById, createInspectionRequest, getExistingInspectionRequest, saveListing, unsaveListing, trackShareEvent } from '../lib/database'
+import { useAuth } from '../contexts/AuthContext'
+import { CowListing } from '../types/types'
+import Navbar from '../components/layout/Navbar'
+import ShareModal from '../components/share/ShareModal'
 import { supabase } from '../lib/supabase';
 
 const ListingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const [listing, setListing] = useState<any>(null);
+  const { user, setMessage } = useAuth();
+  const [cow, setCow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activePhoto, setActivePhoto] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [inspectionDate, setInspectionDate] = useState('');
   const [requestingInspection, setRequestingInspection] = useState(false);
   const [existingRequest, setExistingRequest] = useState<any | null>(null);
@@ -25,6 +29,20 @@ const ListingDetail: React.FC = () => {
       checkIfRequested();
     }
   }, [id, user]);
+
+  const fetchListing = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await getListingById(id!);
+      if (error) throw error;
+      setCow(data);
+    } catch (err) {
+      console.error('Error fetching listing:', err);
+      setError('Could not load listing details.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const checkIfRequested = async () => {
     try {
@@ -52,6 +70,40 @@ const ListingDetail: React.FC = () => {
       console.error('Error checking save status:', err);
     }
   };
+
+  useEffect(() => {
+    if (cow) {
+      // Update Meta Tags for Social Sharing
+      const title = `${cow.breed} for Sale - KSh ${cow.price?.toLocaleString()} | MooMarket`;
+      const description = `${cow.breed} cow in ${cow.county}. View details, photos, and request a viewing on MooMarket Kenya.`;
+      const image = cow.media?.[0]?.media_url || '';
+      const url = window.location.href;
+
+      document.title = title;
+
+      // Helper to update/create meta tags
+      const updateMeta = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
+        let element = document.querySelector(`meta[${attr}="${name}"]`);
+        if (!element) {
+          element = document.createElement('meta');
+          element.setAttribute(attr, name);
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      updateMeta('description', description);
+      updateMeta('og:title', title, 'property');
+      updateMeta('og:description', description, 'property');
+      updateMeta('og:image', image, 'property');
+      updateMeta('og:url', url, 'property');
+      updateMeta('og:type', 'website', 'property');
+      updateMeta('twitter:card', 'summary_large_image');
+      updateMeta('twitter:title', title);
+      updateMeta('twitter:description', description);
+      updateMeta('twitter:image', image);
+    }
+  }, [cow]); // Depend on 'cow' state
 
   const handleToggleSave = async () => {
     if (!user) {
@@ -99,28 +151,16 @@ const ListingDetail: React.FC = () => {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
+    const photoCount = cow?.media?.filter((m: any) => m.media_type === 'photo').length || 1;
+
     if (isLeftSwipe) {
-      setActivePhoto((prev) => (prev + 1) % (cowPhotos.length || 1));
+      setCurrentImageIndex((prev) => (prev + 1) % photoCount);
     }
     if (isRightSwipe) {
-      setActivePhoto((prev) => (prev - 1 + (cowPhotos.length || 1)) % (cowPhotos.length || 1));
+      setCurrentImageIndex((prev) => (prev - 1 + photoCount) % photoCount);
     }
   };
 
-  const fetchListing = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const { data, error } = await getListingById(id);
-      if (error) throw error;
-      setListing(data);
-    } catch (err) {
-      console.error('Error fetching listing:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load listing');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRequestInspection = async () => {
     if (!user) {
@@ -173,8 +213,6 @@ const ListingDetail: React.FC = () => {
       setRequestingInspection(false);
     }
   };
-
-  const cow = listing;
   const seller = cow?.seller;
   const sellerProfile = seller?.seller_profile;
 
@@ -275,16 +313,16 @@ const ListingDetail: React.FC = () => {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
               >
-                <img src={cowPhotos[activePhoto]} alt={cow.breed} className="w-full h-full object-cover transition-opacity duration-500" />
+                <img src={cowPhotos[currentImageIndex]} alt={cow.breed} className="w-full h-full object-cover transition-opacity duration-500" />
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                   {cowPhotos.map((_, idx) => (
-                    <button key={idx} onClick={() => setActivePhoto(idx)} className={`w-2.5 h-2.5 rounded-full transition-all ${activePhoto === idx ? 'bg-white w-6' : 'bg-white/40'}`} />
+                    <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`w-2.5 h-2.5 rounded-full transition-all ${currentImageIndex === idx ? 'bg-white w-6' : 'bg-white/40'}`} />
                   ))}
                 </div>
               </div>
               <div className="p-4 flex gap-4 overflow-x-auto">
                 {cowPhotos.map((photo, idx) => (
-                  <button key={idx} onClick={() => setActivePhoto(idx)} className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition-all ${activePhoto === idx ? 'border-emerald-500 shadow-lg' : 'border-transparent opacity-60'}`}>
+                  <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-emerald-500 shadow-lg' : 'border-transparent opacity-60'}`}>
                     <img src={photo} className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -403,9 +441,53 @@ const ListingDetail: React.FC = () => {
                       <Heart size={20} fill={isSaved ? "currentColor" : "none"} className={isSaving ? 'opacity-50' : ''} />
                     </button>
                   )}
-                  <button className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-blue-500 hover:border-blue-100 hover:bg-blue-50 transition-all">
+                  <button
+                    onClick={async () => {
+                      if (!cow) return;
+
+                      const shareUrl = `${window.location.origin}/listing/${cow.id}?utm_source=share`;
+                      const shareText = `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}\nLocation: ${cow.county}`;
+                      const shareTitle = `Moomarket - ${cow.breed} for Sale`;
+
+                      const shareData = {
+                        title: shareTitle,
+                        text: shareText,
+                        url: shareUrl,
+                        image: cow.media?.[0]?.media_url || ''
+                      };
+
+                      if (navigator.share) {
+                        try {
+                          await navigator.share(shareData);
+                          await trackShareEvent(cow.id, 'native');
+                          setMessage({ text: 'Thanks for sharing!', type: 'success' });
+                        } catch (err) {
+                          if ((err as Error).name !== 'AbortError') {
+                            console.error('Error sharing:', err);
+                            setIsShareModalOpen(true);
+                          }
+                        }
+                      } else {
+                        setIsShareModalOpen(true);
+                      }
+                    }}
+                    className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-blue-500 hover:border-blue-100 hover:bg-blue-50 transition-all"
+                  >
                     <Share2 size={20} />
                   </button>
+                  {cow && (
+                    <ShareModal
+                      isOpen={isShareModalOpen}
+                      onClose={() => setIsShareModalOpen(false)}
+                      shareData={{
+                        title: `Moomarket - ${cow.breed} for Sale`,
+                        text: `Check out this ${cow.breed} for sale on MooMarket!\nPrice: KSh ${cow.price?.toLocaleString()}\nLocation: ${cow.county}`,
+                        url: `${window.location.origin}/listing/${cow.id}?utm_source=share`,
+                        image: cow.media?.[0]?.media_url || ''
+                      }}
+                      onShareTrack={(platform) => trackShareEvent(cow.id, platform)}
+                    />
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 text-slate-500 mb-6"><MapPin size={16} /><span className="text-sm">{cow.specific_location || cow.county}, {cow.county}</span></div>
