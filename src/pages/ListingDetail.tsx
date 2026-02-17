@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Heart, Share2, Info, ChevronLeft, ChevronRight, MessageSquare, Calendar, ShieldCheck, ArrowRight, Home, LayoutDashboard, Search, Settings, User } from 'lucide-react'
-import { getListingById, createInspectionRequest, getExistingInspectionRequest, saveListing, unsaveListing, trackShareEvent } from '../lib/database'
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  MapPin, Heart, Share2, Info, ChevronLeft, ChevronRight,
+  MessageSquare, Calendar, ShieldCheck, ArrowRight, Home,
+  LayoutDashboard, Search, Settings, User, BadgeCheck,
+  AlertTriangle, Truck, Play, X, Baby, Smartphone,
+  Droplets, Phone, Lock, Zap, Loader2, Video,
+  CalendarDays, Check, ArrowLeft
+} from 'lucide-react'
+import {
+  getListingById, createInspectionRequest, getExistingInspectionRequest,
+  saveListing, unsaveListing, trackShareEvent, updateInspectionRequest
+} from '../lib/database'
 import { useAuth } from '../contexts/AuthContext'
-import { CowListing } from '../types/types'
 import Navbar from '../components/layout/Navbar'
 import ShareModal from '../components/share/ShareModal'
 import { supabase } from '../lib/supabase';
 
 const ListingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, setMessage } = useAuth();
   const [cow, setCow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -21,6 +31,9 @@ const ListingDetail: React.FC = () => {
   const [inspectionDate, setInspectionDate] = useState('');
   const [requestingInspection, setRequestingInspection] = useState(false);
   const [existingRequest, setExistingRequest] = useState<any | null>(null);
+  const [showInspectionModal, setShowInspectionModal] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
     fetchListing();
@@ -103,7 +116,7 @@ const ListingDetail: React.FC = () => {
       updateMeta('twitter:description', description);
       updateMeta('twitter:image', image);
     }
-  }, [cow]); // Depend on 'cow' state
+  }, [cow]);
 
   const handleToggleSave = async () => {
     if (!user) {
@@ -128,10 +141,6 @@ const ListingDetail: React.FC = () => {
       setIsSaving(false);
     }
   };
-  const [showInspectionModal, setShowInspectionModal] = useState(false);
-  const [showDeliveryTooltip, setShowDeliveryTooltip] = useState(false);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const minSwipeDistance = 50;
 
@@ -190,7 +199,6 @@ const ListingDetail: React.FC = () => {
         if (error) throw error;
         alert("Viewing date updated successfully!");
         setExistingRequest({ ...existingRequest, preferred_date: inspectionDate });
-        // Trigger notification refresh
         window.dispatchEvent(new CustomEvent('refreshNotifications'));
       } else {
         const { error } = await createInspectionRequest({
@@ -201,9 +209,7 @@ const ListingDetail: React.FC = () => {
         });
         if (error) throw error;
         alert("Viewing request sent successfully!");
-        // Refresh check
         checkIfRequested();
-        // Trigger notification refresh
         window.dispatchEvent(new CustomEvent('refreshNotifications'));
       }
       setShowInspectionModal(false);
@@ -213,6 +219,7 @@ const ListingDetail: React.FC = () => {
       setRequestingInspection(false);
     }
   };
+
   const seller = cow?.seller;
   const sellerProfile = seller?.seller_profile;
 
@@ -244,10 +251,9 @@ const ListingDetail: React.FC = () => {
     );
   }
 
-  // Map media and production data
   const cowPhotos = cow.media?.filter((m: any) => m.media_type === 'photo').map((m: any) => m.media_url) || ['/placeholder-cow.jpg'];
   const cowVideo = cow.media?.find((m: any) => m.media_type.startsWith('video'))?.media_url;
-  const vetReport = cow.vet?.[0] || cow.vet; // Could be object or array depending on Supabase version/config
+  const vetReport = cow.vet?.[0] || cow.vet;
 
   const yields = [
     cow.milk_yield_day_1 || 0,
@@ -306,6 +312,7 @@ const ListingDetail: React.FC = () => {
               </div>
             </div>
 
+            {/* Photo Carousel */}
             <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200">
               <div
                 className="relative aspect-[4/3] bg-slate-100 touch-pan-y"
@@ -314,16 +321,33 @@ const ListingDetail: React.FC = () => {
                 onTouchEnd={onTouchEnd}
               >
                 <img src={cowPhotos[currentImageIndex]} alt={cow.breed} className="w-full h-full object-cover transition-opacity duration-500" />
+
+                {/* Carousel Navigation Arrows (Desktop) */}
+                <div className="hidden md:block">
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + cowPhotos.length) % cowPhotos.length)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-800 hover:bg-white transition-all shadow-md"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % cowPhotos.length)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-800 hover:bg-white transition-all shadow-md"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                   {cowPhotos.map((_, idx) => (
-                    <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`w-2.5 h-2.5 rounded-full transition-all ${currentImageIndex === idx ? 'bg-white w-6' : 'bg-white/40'}`} />
+                    <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`h-1.5 rounded-full transition-all ${currentImageIndex === idx ? 'bg-white w-6' : 'bg-white/40 w-1.5'}`} />
                   ))}
                 </div>
               </div>
-              <div className="p-4 flex gap-4 overflow-x-auto">
+              <div className="p-4 flex gap-3 overflow-x-auto scrollbar-hide">
                 {cowPhotos.map((photo, idx) => (
-                  <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-emerald-500 shadow-lg' : 'border-transparent opacity-60'}`}>
-                    <img src={photo} className="w-full h-full object-cover" />
+                  <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-emerald-500 shadow-lg' : 'border-transparent opacity-60'}`}>
+                    <img src={photo} className="w-full h-full object-cover" alt={`Thumbnail ${idx + 1}`} />
                   </button>
                 ))}
               </div>
@@ -434,8 +458,8 @@ const ListingDetail: React.FC = () => {
                       onClick={handleToggleSave}
                       disabled={isSaving}
                       className={`p-3 rounded-2xl border transition-all ${isSaved
-                        ? 'bg-red-50 border-red-100 text-red-500'
-                        : 'bg-white border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'
+                          ? 'bg-red-50 border-red-100 text-red-500'
+                          : 'bg-white border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50'
                         }`}
                     >
                       <Heart size={20} fill={isSaved ? "currentColor" : "none"} className={isSaving ? 'opacity-50' : ''} />
@@ -452,15 +476,14 @@ const ListingDetail: React.FC = () => {
                       const shareData = {
                         title: shareTitle,
                         text: shareText,
-                        url: shareUrl,
-                        image: cow.media?.[0]?.media_url || ''
+                        url: shareUrl
                       };
 
                       if (navigator.share) {
                         try {
                           await navigator.share(shareData);
                           await trackShareEvent(cow.id, 'native');
-                          setMessage({ text: 'Thanks for sharing!', type: 'success' });
+                          if (setMessage) setMessage({ text: 'Thanks for sharing!', type: 'success' });
                         } catch (err) {
                           if ((err as Error).name !== 'AbortError') {
                             console.error('Error sharing:', err);
