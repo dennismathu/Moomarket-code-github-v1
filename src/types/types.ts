@@ -77,3 +77,14 @@ export interface User {
   created_at: string;
   updated_at: string;
 }
+
+export interface UserFeedback {
+  id: string;
+  user_id: string | null;
+  type: 'bug_report' | 'feature_idea' | 'other';
+  description: string;
+  screenshot_url: string | null;
+  is_anonymous: boolean;
+  user_email: string | null;
+  created_at: string;
+}

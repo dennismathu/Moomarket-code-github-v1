@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { CowListing, InspectionRequest } from '../types/types'
+import { CowListing, InspectionRequest, UserFeedback } from '../types/types'
 
 // ============================================
 // LISTINGS
@@ -782,5 +782,47 @@ export async function trackShareEvent(listingId: string, platform: string) {
     } catch (error) {
         console.error('Error tracking share event:', error)
         return { error: error as Error }
+    }
+}
+
+// ============================================
+// USER FEEDBACK
+// ============================================
+
+/**
+ * Submit user feedback
+ */
+export async function submitFeedback(feedback: Partial<UserFeedback>) {
+    try {
+        const { data, error } = await supabase
+            .from('user_feedback')
+            .insert([feedback])
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error submitting feedback:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
+/**
+ * Get all feedback for admin
+ */
+export async function getAllFeedback() {
+    try {
+        const { data, error } = await supabase
+            .from('user_feedback')
+            .select(`
+                *,
+                user:users(full_name, email)
+            `)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error fetching feedback:', error)
+        return { data: null, error: error as Error }
     }
 }

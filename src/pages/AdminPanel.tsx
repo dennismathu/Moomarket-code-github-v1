@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, FileText, ExternalLink, AlertTriangle, Eye, Users, TrendingUp, MapPin, Loader2, BarChart3, Trash2 } from 'lucide-react';
-import { getAllListingsForAdmin, updateListingStatus, getAdminMetrics, deleteListing } from '../lib/database';
+import { Shield, CheckCircle, XCircle, FileText, ExternalLink, AlertTriangle, Eye, Users, TrendingUp, MapPin, Loader2, BarChart3, Trash2, Camera } from 'lucide-react';
+import { getAllListingsForAdmin, updateListingStatus, getAdminMetrics, deleteListing, getAllFeedback } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminPanel: React.FC = () => {
   const { setMessage } = useAuth();
-  const [activeTab, setActiveTab] = useState<'moderation' | 'metrics'>('moderation');
+  const [activeTab, setActiveTab] = useState<'moderation' | 'metrics' | 'feedback'>('moderation');
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [feedback, setFeedback] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -16,13 +17,15 @@ const AdminPanel: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [listingsRes, metricsRes] = await Promise.all([
+    const [listingsRes, metricsRes, feedbackRes] = await Promise.all([
       getAllListingsForAdmin(),
-      getAdminMetrics()
+      getAdminMetrics(),
+      getAllFeedback()
     ]);
 
     if (!listingsRes.error) setListings(listingsRes.data || []);
     if (!metricsRes.error) setMetrics(metricsRes.data);
+    if (!feedbackRes.error) setFeedback(feedbackRes.data || []);
     setLoading(false);
   };
 
@@ -83,6 +86,12 @@ const AdminPanel: React.FC = () => {
             className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'metrics' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'}`}
           >
             Platform Metrics
+          </button>
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'feedback' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'}`}
+          >
+            User Feedback
           </button>
         </div>
 
@@ -183,6 +192,68 @@ const AdminPanel: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        ) : activeTab === 'feedback' ? (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Type</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Description</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">User</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {feedback.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-6">
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.type === 'bug_report' ? 'text-red-600 bg-red-50 border-red-100' :
+                            item.type === 'feature_idea' ? 'text-amber-600 bg-amber-50 border-amber-100' :
+                              'text-blue-600 bg-blue-50 border-blue-100'
+                            }`}>
+                            {item.type.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="max-w-md">
+                            <p className="text-sm text-slate-700 line-clamp-2">{item.description}</p>
+                            {item.screenshot_url && (
+                              <button
+                                onClick={() => window.open(item.screenshot_url, '_blank')}
+                                className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 mt-2 hover:underline"
+                              >
+                                <Camera size={10} /> VIEW SCREENSHOT
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          {item.is_anonymous ? (
+                            <div className="text-xs font-bold text-slate-400 italic">Anonymous</div>
+                          ) : (
+                            <>
+                              <div className="text-sm font-medium text-slate-700">{item.user?.full_name || 'Deleted User'}</div>
+                              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.user_email}</div>
+                            </>
+                          )}
+                        </td>
+                        <td className="px-6 py-6 text-sm text-slate-500">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {feedback.length === 0 && (
+              <div className="bg-white p-20 rounded-3xl border border-slate-200 text-center text-slate-400 font-medium">
+                No feedback received yet.
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">

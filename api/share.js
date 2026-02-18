@@ -17,24 +17,28 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   const { data: cow, error } = await supabase
-    .from('listings')
-    .select('*')
+    .from('cow_listings')
+    .select(`
+      *,
+      media:listing_media(media_url, media_type, display_order)
+    `)
     .eq('id', id)
     .single();
 
   if (error || !cow) {
+    console.error('Share API Error:', error);
     return res.status(404).send('Listing not found');
   }
 
   const title = `${cow.breed} for Sale - KSh ${cow.price?.toLocaleString()} | MooMarket`;
   const description = `${cow.breed} cow in ${cow.county}. View details, photos, and request a viewing on MooMarket Kenya.`;
 
-  // Ensure image URL is absolute and valid
+  // Use the first photo from the media array
   let image = 'https://moomarket.vercel.app/og-image.jpg';
   if (cow.media && Array.isArray(cow.media) && cow.media.length > 0) {
-    const firstMedia = cow.media.find(m => m.media_type === 'photo') || cow.media[0];
-    if (firstMedia && firstMedia.media_url) {
-      image = firstMedia.media_url;
+    const firstPhoto = cow.media.sort((a, b) => a.display_order - b.display_order).find(m => m.media_type === 'photo');
+    if (firstPhoto && firstPhoto.media_url) {
+      image = firstPhoto.media_url;
     }
   }
 

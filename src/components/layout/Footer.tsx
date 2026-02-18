@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import FeedbackModal from '../FeedbackModal';
 
 const Footer: React.FC = () => {
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
     return (
         <footer className="bg-slate-900 text-slate-400 py-12 px-4 border-t border-slate-800">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -27,6 +30,7 @@ const Footer: React.FC = () => {
                     <ul className="space-y-2 text-sm">
                         <li><a href="/#faq" className="hover:text-emerald-400">FAQs</a></li>
                         <li><Link to="/contact" className="hover:text-emerald-400">Contact Us</Link></li>
+                        <li><button onClick={() => setIsFeedbackOpen(true)} className="hover:text-emerald-400 text-left">Give Feedback</button></li>
                         <li><Link to="/terms" className="hover:text-emerald-400">Privacy Policy</Link></li>
                     </ul>
                 </div>
@@ -44,6 +48,8 @@ const Footer: React.FC = () => {
             <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-800 text-center text-xs">
                 &copy; 2026 MooMarket Kenya. All rights reserved.
             </div>
+
+            <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
         </footer>
     );
 };
