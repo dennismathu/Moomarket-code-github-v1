@@ -404,6 +404,7 @@ const ListingDetail: React.FC = () => {
                   <div className="flex justify-between pl-6 mt-4">
                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (<span key={day} className="text-[10px] font-bold text-slate-400 flex-1 text-center">{day}</span>))}
                   </div>
+                  <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest mt-4">Tap individual graph bars to show exact milk yield for that day</p>
                 </div>
 
                 <div className="space-y-6">
@@ -521,7 +522,20 @@ const ListingDetail: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2 text-slate-500 mb-6"><MapPin size={16} /><span className="text-sm">{cow.specific_location || cow.county}, {cow.county}</span></div>
-              <div className="text-4xl font-black text-slate-900 mb-8">KSh {cow.price?.toLocaleString() || '0'}</div>
+              <div className="text-4xl font-black text-slate-900 mb-2">KSh {cow.price?.toLocaleString() || '0'}</div>
+              <div className="flex items-center gap-2 mb-8 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">{seller?.full_name?.charAt(0) || '?'}</div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seller</span>
+                  <span className="text-sm font-bold text-slate-900">{seller?.full_name}</span>
+                </div>
+                <div className="ml-auto flex flex-col items-end">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posted</span>
+                  <span className="text-[10px] font-bold text-slate-900">
+                    {cow.created_at ? new Date(cow.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                  </span>
+                </div>
+              </div>
               <div className="space-y-4 mb-8">
                 {user?.id === cow.seller_id ? (
                   <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center">

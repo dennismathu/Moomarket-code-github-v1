@@ -749,10 +749,36 @@ export async function getNotifications(userId: string) {
 
         if (sellerError) throw sellerError
 
+        // Fetch listing status notifications for seller (rejections)
+        const { data: statusData, error: statusError } = await supabase
+            .from('cow_listings')
+            .select(`
+                id,
+                breed,
+                status,
+                admin_notes,
+                updated_at,
+                seller_id
+            `)
+            .eq('seller_id', userId)
+            .eq('status', 'rejected')
+            .order('updated_at', { ascending: false })
+            .limit(5)
+
+        if (statusError) throw statusError
+
+        // Standardize status notifications to look like inspection requests for the hub
+        const formattedStatusData = (statusData || []).map(item => ({
+            ...item,
+            type: 'listing_status',
+            listing: { breed: item.breed, seller_id: item.seller_id },
+            listing_id: item.id
+        }))
+
         // Merge and sort results
-        const mergedData = [...(buyerData || []), ...(sellerData || [])]
+        const mergedData = [...(buyerData || []), ...(sellerData || []), ...formattedStatusData]
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-            .slice(0, 10)
+            .slice(0, 15)
 
         // Deduplicate just in case
         const uniqueData = Array.from(new Map(mergedData.map(item => [item.id, item])).values())

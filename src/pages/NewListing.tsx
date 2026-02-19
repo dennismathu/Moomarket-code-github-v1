@@ -332,6 +332,7 @@ export default function NewListing() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Number of Calvings</label>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">How many times has this cow given birth?</p>
                     <input
                       type="number"
                       value={formData.parity}
@@ -386,6 +387,7 @@ export default function NewListing() {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-slate-900">Milk Production</h2>
                 <p className="text-slate-500">Enter daily milk yield for the last 7 days (in liters)</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 mb-4">Accurate yield data helps buyers trust your listing and can lead to faster sales.</p>
 
                 <div className="grid grid-cols-7 gap-2">
                   {formData.milkYield.map((yieldValue, index) => (
@@ -432,6 +434,7 @@ export default function NewListing() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Lactation Stage</label>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Current period of the cow's milk cycle.</p>
                   <select
                     value={formData.lactationStage}
                     onChange={(e) => setFormData({ ...formData, lactationStage: e.target.value as any })}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle, ArrowRight, Calendar } from 'lucide-react';
 import { getListings, getSellerProfile } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -46,6 +46,8 @@ export default function Marketplace() {
   const [isDewormedOnly, setIsDewormedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
 
   // Fetch listings on mount
   useEffect(() => {
@@ -93,6 +95,8 @@ export default function Marketplace() {
       const matchPregnant = !isPregnantOnly || listing.is_pregnant;
       const matchVaccinated = !isVaccinatedOnly || listing.is_vaccinated;
       const matchDewormed = !isDewormedOnly || listing.is_dewormed;
+      const matchMinPrice = !minPrice || listing.price >= parseFloat(minPrice);
+      const matchMaxPrice = !maxPrice || listing.price <= parseFloat(maxPrice);
 
       const matchSearch = listing.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
         listing.county.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -100,9 +104,10 @@ export default function Marketplace() {
 
       return matchBreed && matchCounty && matchYield &&
         matchPregnant && matchVaccinated && matchDewormed &&
+        matchMinPrice && matchMaxPrice &&
         matchSearch;
     });
-  }, [listings, filterBreed, filterCounty, minMilkYield, isPregnantOnly, isVaccinatedOnly, isDewormedOnly, searchTerm]);
+  }, [listings, filterBreed, filterCounty, minMilkYield, isPregnantOnly, isVaccinatedOnly, isDewormedOnly, searchTerm, minPrice, maxPrice]);
 
   const clearFilters = () => {
     setFilterBreed('All');
@@ -112,6 +117,8 @@ export default function Marketplace() {
     setIsVaccinatedOnly(false);
     setIsDewormedOnly(false);
     setSearchTerm('');
+    setMinPrice('');
+    setMaxPrice('');
   };
 
   const counties = ["Kiambu", "Nakuru", "Nyeri", "Murang'a", "Bomet", "Meru", "Uasin Gishu", "Kericho", "Nyandarua", "Kirinyaga"];
@@ -183,6 +190,27 @@ export default function Marketplace() {
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Budget */}
+                <div className="pt-6 border-t border-slate-100">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Budget (KSh)</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
                     />
                   </div>
                 </div>

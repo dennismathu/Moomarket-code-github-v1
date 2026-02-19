@@ -61,6 +61,7 @@ const Navbar = () => {
                 (n.buyer_id === user.id && n.status === 'confirmed') ||
                 (n.listing.seller_id === user.id && n.rescheduled_by === 'buyer') ||
                 (n.buyer_id === user.id && n.rescheduled_by === 'seller') ||
+                n.type === 'listing_status' ||
                 n.isTomorrow
             ).length || 0;
 
@@ -134,7 +135,9 @@ const Navbar = () => {
                                                                 className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${((isSeller && n.status === 'pending') || (isBuyer && n.status === 'confirmed')) ? 'bg-emerald-50/30' : ''
                                                                     }`}
                                                                 onClick={() => {
-                                                                    if (n.status === 'completed') {
+                                                                    if (n.type === 'listing_status') {
+                                                                        navigate('/dashboard/seller');
+                                                                    } else if (n.status === 'completed') {
                                                                         navigate(`/listing/${n.listing_id}`);
                                                                     } else if (isSeller) {
                                                                         navigate('/dashboard/seller#upcoming-inspections');
@@ -145,10 +148,11 @@ const Navbar = () => {
                                                                 }}
                                                             >
                                                                 <div className="flex gap-3">
-                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.isTomorrow ? 'bg-indigo-100 text-indigo-600 animate-pulse' :
-                                                                        n.status === 'confirmed' ? 'bg-blue-100 text-blue-600' :
-                                                                            n.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
-                                                                                'bg-amber-100 text-amber-600'
+                                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${n.type === 'listing_status' ? 'bg-red-100 text-red-600' :
+                                                                        n.isTomorrow ? 'bg-indigo-100 text-indigo-600 animate-pulse' :
+                                                                            n.status === 'confirmed' ? 'bg-blue-100 text-blue-600' :
+                                                                                n.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                                                                                    'bg-amber-100 text-amber-600'
                                                                         }`}>
                                                                         <Bell size={14} />
                                                                     </div>
@@ -160,22 +164,25 @@ const Navbar = () => {
                                                                             {n.isUpdated && (
                                                                                 <span className="inline-block px-1.5 py-0.5 bg-amber-500 text-[8px] text-white font-black uppercase rounded mr-1.5 align-middle">Rescheduled</span>
                                                                             )}
-                                                                            {isSeller && n.rescheduled_by === 'buyer' && (
+                                                                            {n.type === 'listing_status' && (
+                                                                                <>Your listing for <span className="font-bold">{n.listing.breed}</span> was <span className="text-red-600 font-bold uppercase">rejected</span>. Reason: <span className="italic text-slate-500 line-clamp-1">"{n.admin_notes}"</span></>
+                                                                            )}
+                                                                            {isSeller && n.rescheduled_by === 'buyer' && n.type !== 'listing_status' && (
                                                                                 <>Buyer rescheduled viewing for <span className="font-bold">{n.listing.breed}</span> to <span className="font-bold text-amber-600">{new Date(n.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span></>
                                                                             )}
-                                                                            {isBuyer && n.rescheduled_by === 'seller' && (
+                                                                            {isBuyer && n.rescheduled_by === 'seller' && n.type !== 'listing_status' && (
                                                                                 <>Farmer suggested a new date for <span className="font-bold">{n.listing.breed}</span>: <span className="font-bold text-amber-600">{new Date(n.preferred_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span></>
                                                                             )}
-                                                                            {isSeller && n.status === 'pending' && !n.rescheduled_by && (
+                                                                            {isSeller && n.status === 'pending' && !n.rescheduled_by && n.type !== 'listing_status' && (
                                                                                 <>New viewing request for your <span className="font-bold">{n.listing.breed}</span></>
                                                                             )}
-                                                                            {isBuyer && n.status === 'confirmed' && !n.rescheduled_by && (
+                                                                            {isBuyer && n.status === 'confirmed' && !n.rescheduled_by && n.type !== 'listing_status' && (
                                                                                 <>Your viewing for <span className="font-bold">{n.listing.breed}</span> has been <span className="text-blue-600 font-bold">confirmed</span>!</>
                                                                             )}
-                                                                            {isBuyer && n.status === 'pending' && !n.rescheduled_by && (
+                                                                            {isBuyer && n.status === 'pending' && !n.rescheduled_by && n.type !== 'listing_status' && (
                                                                                 <>You requested a viewing for <span className="font-bold">{n.listing.breed}</span></>
                                                                             )}
-                                                                            {n.status === 'completed' && (
+                                                                            {n.status === 'completed' && n.type !== 'listing_status' && (
                                                                                 <>Viewing for <span className="font-bold">{n.listing.breed}</span> marked as <span className="text-emerald-600 font-bold">completed</span></>
                                                                             )}
                                                                         </p>

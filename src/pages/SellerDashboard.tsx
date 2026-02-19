@@ -5,7 +5,7 @@ import {
    ShoppingBag, MessageSquare, Calendar, ChevronRight, CheckCircle,
    Clock, Plus, ShieldCheck, Eye, TrendingUp, Award, Settings,
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
-   Trash2, BellRing, Info, X, Droplets, Baby, Loader2, Bookmark, MapPin, Users
+   Trash2, BellRing, Info, X, Droplets, Baby, Loader2, Bookmark, MapPin, Users, AlertTriangle
 } from 'lucide-react';
 import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
@@ -461,6 +461,11 @@ const SellerDashboard: React.FC = () => {
                                              {cow.status}
                                           </span>
                                           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Peak: {peakYield}L</div>
+                                          {cow.status === 'rejected' && (
+                                             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100">
+                                                <AlertTriangle size={10} /> REASON: {cow.admin_notes || 'No reason provided'}
+                                             </div>
+                                          )}
                                           <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
                                              <Eye size={12} /> {cow.view_count || 0} views
                                           </div>

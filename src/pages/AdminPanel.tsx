@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, FileText, ExternalLink, AlertTriangle, Eye, Users, TrendingUp, MapPin, Loader2, BarChart3, Trash2, Camera } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, FileText, ExternalLink, AlertTriangle, Eye, Users, TrendingUp, MapPin, Loader2, BarChart3, Trash2, Camera, Copy, Info, X } from 'lucide-react';
 import { getAllListingsForAdmin, updateListingStatus, getAdminMetrics, deleteListing, getAllFeedback } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,6 +10,10 @@ const AdminPanel: React.FC = () => {
   const [listings, setListings] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [feedback, setFeedback] = useState<any[]>([]);
+  const [selectedFeedback, setSelectedFeedback] = useState<any | null>(null);
+  const [rejectingListingId, setRejectingListingId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmittingRejection, setIsSubmittingRejection] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -29,14 +33,21 @@ const AdminPanel: React.FC = () => {
     setLoading(false);
   };
 
-  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
-    const { error } = await updateListingStatus(id, status);
+  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
+    const { error } = await updateListingStatus(id, status, notes);
     if (!error) {
       setMessage({ text: `Listing ${status} successfully`, type: 'success' });
+      setRejectingListingId(null);
+      setRejectionReason('');
       fetchData();
     } else {
       setMessage({ text: 'Failed to update status', type: 'error' });
     }
+  };
+
+  const handleCopyFeedback = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setMessage({ text: 'Feedback copied to clipboard', type: 'success' });
   };
 
   const handleDelete = async (id: string) => {
@@ -220,14 +231,28 @@ const AdminPanel: React.FC = () => {
                         <td className="px-6 py-6">
                           <div className="max-w-md">
                             <p className="text-sm text-slate-700 line-clamp-2">{item.description}</p>
-                            {item.screenshot_url && (
+                            <div className="flex items-center gap-3 mt-2">
                               <button
-                                onClick={() => window.open(item.screenshot_url, '_blank')}
-                                className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 mt-2 hover:underline"
+                                onClick={() => setSelectedFeedback(item)}
+                                className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 uppercase tracking-widest"
                               >
-                                <Camera size={10} /> VIEW SCREENSHOT
+                                View Full
                               </button>
-                            )}
+                              <button
+                                onClick={() => handleCopyFeedback(item.description)}
+                                className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-emerald-600 uppercase tracking-widest"
+                              >
+                                <Copy size={10} /> Copy
+                              </button>
+                              {item.screenshot_url && (
+                                <button
+                                  onClick={() => window.open(item.screenshot_url, '_blank')}
+                                  className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:underline"
+                                >
+                                  <Camera size={10} /> Screenshot
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-6">
@@ -323,7 +348,7 @@ const AdminPanel: React.FC = () => {
                             )}
                             {cow.status !== 'rejected' && (
                               <button
-                                onClick={() => handleStatusUpdate(cow.id, 'rejected')}
+                                onClick={() => setRejectingListingId(cow.id)}
                                 className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                                 title="Reject"
                               >
@@ -408,7 +433,7 @@ const AdminPanel: React.FC = () => {
                     )}
                     {cow.status !== 'rejected' && (
                       <button
-                        onClick={() => handleStatusUpdate(cow.id, 'rejected')}
+                        onClick={() => setRejectingListingId(cow.id)}
                         className="flex-1 min-w-[120px] py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform"
                       >
                         <XCircle size={16} /> Reject
@@ -440,6 +465,110 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Feedback Detail Modal */}
+      {selectedFeedback && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 uppercase tracking-widest text-sm italic">Feedback Detail</h3>
+              <button onClick={() => setSelectedFeedback(null)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${selectedFeedback.type === 'bug_report' ? 'text-red-600 bg-red-50' :
+                  selectedFeedback.type === 'feature_idea' ? 'text-amber-600 bg-amber-50' :
+                    'text-blue-600 bg-blue-50'
+                  }`}>
+                  {selectedFeedback.type.replace('_', ' ')}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(selectedFeedback.created_at).toLocaleDateString()}</span>
+              </div>
+              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedFeedback.description}</p>
+
+              <div className="mt-8 flex items-center gap-3">
+                <button
+                  onClick={() => handleCopyFeedback(selectedFeedback.description)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-900 font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Copy size={16} /> Copy Description
+                </button>
+                {selectedFeedback.screenshot_url && (
+                  <button
+                    onClick={() => window.open(selectedFeedback.screenshot_url, '_blank')}
+                    className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                  >
+                    <Camera size={16} /> View Screenshot
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal */}
+      {rejectingListingId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-red-100 text-red-600 rounded-lg flex items-center justify-center">
+                  <XCircle size={18} />
+                </div>
+                <h3 className="font-bold text-slate-900">Reject Listing</h3>
+              </div>
+              <button onClick={() => {
+                setRejectingListingId(null);
+                setRejectionReason('');
+              }} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 pt-8">
+              <p className="text-sm text-slate-600 mb-6 font-medium">Please provide a reason for rejecting this listing. This will be visible to the seller.</p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Rejection Reason</label>
+                  <textarea
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 min-h-[120px] transition-shadow"
+                    placeholder="e.g. Milking card doesn't match the yield provided, or photos are unclear..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setRejectingListingId(null);
+                      setRejectionReason('');
+                    }}
+                    className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!rejectionReason.trim() || isSubmittingRejection}
+                    onClick={async () => {
+                      setIsSubmittingRejection(true);
+                      await handleStatusUpdate(rejectingListingId, 'rejected', rejectionReason);
+                      setIsSubmittingRejection(false);
+                    }}
+                    className="flex-[2] py-4 bg-red-600 text-white font-bold rounded-2xl text-xs uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                  >
+                    {isSubmittingRejection ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+                    Confirm Rejection
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
