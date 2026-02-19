@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle, ArrowRight, Calendar } from 'lucide-react';
+import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle, ArrowRight, Calendar, Milk, Syringe, BugOff } from 'lucide-react';
 import { getListings, getSellerProfile } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -331,44 +331,109 @@ export default function Marketplace() {
             ) : filteredListings.length > 0 ? (
               <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
                 {filteredListings.map((listing) => {
-                  console.log('Listing media for', listing.breed, ':', listing.media);
                   const photo = listing.media && listing.media.length > 0
                     ? listing.media.find(m => m.media_type === 'photo')?.media_url || '/placeholder-cow.jpg'
                     : '/placeholder-cow.jpg';
 
                   return (
-                    <Link key={listing.id} to={`/listing/${listing.id}`} className={`bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all group ${viewMode === 'list' ? 'flex flex-col sm:flex-row' : ''}`}>
-                      <div className={`relative ${viewMode === 'list' ? 'sm:w-64 h-48 sm:h-full' : 'h-52'}`}>
-                        <img src={photo} alt={listing.breed} className="w-full h-full object-cover" />
-                        <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md text-white rounded-lg text-xs font-bold border border-white/20">
+                    <Link
+                      key={listing.id}
+                      to={`/listing/${listing.id}`}
+                      className={`bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group flex flex-col h-full`}
+                      style={{ fontFamily: "'Outfit', sans-serif" }}
+                    >
+                      {/* Image Section */}
+                      <div className={`relative ${viewMode === 'list' ? 'sm:w-80 h-72 sm:h-auto' : 'h-72'} overflow-hidden`}>
+                        <img
+                          src={photo}
+                          alt={listing.breed}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                        />
+                        <div className="absolute bottom-5 right-5 flex items-center gap-1.5 px-4 py-2 bg-slate-900/40 backdrop-blur-xl text-white rounded-full text-[11px] font-bold border border-white/20 shadow-2xl">
+                          <MapPin size={14} className="text-emerald-400" />
                           {listing.county}
                         </div>
                       </div>
-                      <div className="p-5 flex flex-col justify-between flex-grow">
-                        <div>
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">{listing.breed} • {listing.age}Y</h3>
-                            <div className="text-right">
-                              <p className="text-lg font-extrabold text-slate-900">KSh {listing.price.toLocaleString()}</p>
-                              <div className="mt-1 flex items-center justify-end gap-1">
-                                <Droplets size={12} className="text-emerald-500" />
-                                <span className="text-sm font-black text-emerald-600 tracking-tighter">{listing.avg_milk_yield.toFixed(1)}L AVG</span>
+
+                      {/* Content Section */}
+                      <div className="p-5 md:p-6 flex flex-col justify-between flex-grow">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="min-w-0">
+                              <h3
+                                className="text-xl font-bold text-slate-900 leading-tight tracking-tight group-hover:text-emerald-600 transition-colors truncate"
+                                style={{ fontFamily: "Calibri, 'Segoe UI', Candara, Arial, sans-serif" }}
+                              >
+                                {listing.breed}
+                              </h3>
+                              <div className="mt-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest">
+                                  {listing.age} Years Old
+                                </span>
                               </div>
                             </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Price</p>
+                              <p className="text-xl font-black text-emerald-600 tracking-tight">
+                                <span className="text-xs font-bold mr-0.5">KSh</span>
+                                {listing.price.toLocaleString()}
+                              </p>
+                            </div>
                           </div>
-                          {/* Trust Badges */}
-                          <div className="flex gap-2 mb-4">
-                            {listing.seller.is_phone_verified && <div className="p-1 bg-blue-100 text-blue-600 rounded" title="Phone Verified"><Smartphone size={12} /></div>}
-                            {listing.seller.is_id_verified && <div className="p-1 bg-indigo-100 text-indigo-600 rounded" title="ID Verified"><ShieldCheck size={12} /></div>}
-                            {listing.is_pregnant && <div className="p-1 bg-blue-50 text-blue-500 rounded" title="Pregnant"><Baby size={12} /></div>}
+
+                          {/* Stats & Health Badges Row */}
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            {/* Minimalist Milk Section */}
+                            <div className="flex items-center gap-2 py-1.5 px-3 bg-slate-50 rounded-xl border border-slate-100/50 flex-shrink-0">
+                              <Milk size={14} strokeWidth={2.5} className="text-emerald-600" />
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">Milk per Day:</span>
+                              <p className="text-[10px] font-black text-slate-900 leading-none">
+                                {listing.avg_milk_yield.toFixed(1)} <span className="text-slate-400 font-bold ml-0.5">L</span>
+                              </p>
+                            </div>
+
+                            {/* Health Badges - Max 2 (Icons only) */}
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {[
+                                listing.is_pregnant && { icon: <Baby size={12} />, label: 'Pregnant', color: 'bg-purple-50 text-purple-600 border-purple-100' },
+                                listing.is_vaccinated && { icon: <Syringe size={12} />, label: 'Vaccinated', color: 'bg-blue-50 text-blue-600 border-blue-100' },
+                                listing.is_dewormed && { icon: <BugOff size={12} />, label: 'Dewormed', color: 'bg-orange-50 text-orange-600 border-orange-100' }
+                              ]
+                                .filter((b): b is { icon: React.ReactNode; label: string; color: string } => !!b)
+                                .slice(0, 2)
+                                .map((badge, idx) => (
+                                  <div
+                                    key={idx}
+                                    title={badge.label}
+                                    className={`w-7 h-7 flex items-center justify-center rounded-lg border shadow-sm transition-transform hover:scale-110 ${badge.color}`}
+                                  >
+                                    {badge.icon}
+                                  </div>
+                                ))}
+                            </div>
                           </div>
                         </div>
-                        <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">{listing.seller.full_name.charAt(0)}</div>
-                            <span className="text-xs font-medium text-slate-600">{listing.seller.full_name}</span>
+
+                        {/* Footer Section - Optimized for Seller Name */}
+                        <div className="mt-6 pt-5 border-t border-slate-50 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white shadow-inner flex items-center justify-center text-[9px] font-black text-slate-600 uppercase overflow-hidden flex-shrink-0">
+                              {listing.seller.full_name.charAt(0)}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Seller</span>
+                              <span className="text-[10px] font-bold text-slate-900 truncate" title={listing.seller.full_name}>
+                                {listing.seller.full_name}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-emerald-600 text-xs font-bold uppercase tracking-widest flex items-center gap-1">View Details <ChevronDown size={14} className="-rotate-90" /></div>
+
+                          <div className="flex-shrink-0">
+                            <div className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 transition-all active:scale-95 group/btn whitespace-nowrap">
+                              View
+                              <ArrowRight size={14} strokeWidth={3} className="group-hover/btn:translate-x-1 transition-transform" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </Link>
