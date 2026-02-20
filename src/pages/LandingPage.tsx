@@ -38,25 +38,30 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             <div className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
-              <div className="relative mx-auto w-full rounded-3xl shadow-2xl overflow-hidden border-8 border-white">
+              <Link to="/listings" className="relative mx-auto w-full rounded-3xl shadow-2xl overflow-hidden border-8 border-white group cursor-pointer block">
                 <img
-                  className="w-full h-full object-cover aspect-[4/3]"
+                  className="w-full h-full object-cover aspect-[4/3] group-hover:scale-110 transition-transform duration-700"
                   src="https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80&w=800"
-                  alt="Healthy Friesian dairy cow"
+                  alt="Verified Friesian cow on MooMarket"
                 />
-                <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white">
+                <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-full shadow-lg border border-emerald-500/30">
+                    Farmer & Vet Verification Coming Soon
+                  </span>
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-lg border border-white group-hover:bg-white transition-all transform group-hover:-translate-y-1">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Top Verified Seller</p>
-                      <p className="font-bold text-slate-900">Samuel's Green Farm, Kiambu</p>
+                      <p className="text-xs text-slate-500 uppercase font-extrabold tracking-wider">Top Verified Seller</p>
+                      <p className="font-bold text-slate-900">MooMarket Demo Farm, Githunguri</p>
                     </div>
                     <div className="flex -space-x-2">
-                      <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-500 flex items-center justify-center text-white text-[10px] font-bold">V</div>
-                      <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold">5+</div>
+                      <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-500 flex items-center justify-center text-white text-[10px] font-black shadow-sm">MM</div>
+                      <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-600 flex items-center justify-center text-white text-[10px] font-black shadow-sm">✓</div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
@@ -96,7 +101,10 @@ const LandingPage: React.FC = () => {
               <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-6">
                 <ShieldCheck size={28} />
               </div>
-              <h3 className="text-xl font-bold mb-3">Vet Verification</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold">Vet Verification</h3>
+                <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-tighter">Coming Soon</span>
+              </div>
               <p className="text-slate-500 leading-relaxed mb-6">
                 Sellers must upload signed reports from registered clinics. We manually check every document before a cow goes live.
               </p>
