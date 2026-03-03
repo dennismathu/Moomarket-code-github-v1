@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Eye, EyeOff } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { Eye, EyeOff, ChevronLeft, ShieldX } from 'lucide-react'
 
 export default function ResetPassword() {
     const navigate = useNavigate()
@@ -13,6 +14,51 @@ export default function ResetPassword() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState(false)
+    // null = still waiting, true = valid recovery link, false = invalid/expired
+    const [isRecoverySession, setIsRecoverySession] = useState<boolean | null>(null)
+
+    // Detect whether the user arrived via a genuine password-reset email link.
+    //
+    // Why getSession() is the primary check:
+    //   Supabase processes the reset token (URL hash or PKCE code) during its
+    //   own initialization — BEFORE any React component mounts. By the time
+    //   useEffect runs, the PASSWORD_RECOVERY event has already fired and will
+    //   NOT be re-emitted for new subscribers. Calling getSession() immediately
+    //   gives us the session that was created from the recovery token.
+    //
+    // The onAuthStateChange listener is kept as a backup for PKCE flows where
+    // the token exchange is async and may finish after component mount.
+    useEffect(() => {
+        let isMounted = true
+
+        // PRIMARY: check if Supabase already established a recovery session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!isMounted) return
+            if (session?.user) {
+                // A valid session exists — the recovery link was processed successfully
+                setIsRecoverySession(true)
+            }
+        })
+
+        // BACKUP: catch PASSWORD_RECOVERY if PKCE exchange finishes after mount
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (!isMounted) return
+            if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session?.user)) {
+                setIsRecoverySession(true)
+            }
+        })
+
+        // After 8 seconds with no session and no event → mark link as invalid
+        const timeout = setTimeout(() => {
+            if (isMounted) setIsRecoverySession(prev => prev === null ? false : prev)
+        }, 8000)
+
+        return () => {
+            isMounted = false
+            subscription.unsubscribe()
+            clearTimeout(timeout)
+        }
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -36,11 +82,52 @@ export default function ResetPassword() {
         } else {
             setSuccess(true)
             setLoading(false)
-            // Redirect after 3 seconds
+            // User is already authenticated at this point (recovery creates a session).
+            // Redirect to listings — NOT /login — after 3 seconds.
             setTimeout(() => {
-                navigate('/login')
+                navigate('/listings')
             }, 3000)
         }
+    }
+
+    // Show a waiting spinner while we check for the PASSWORD_RECOVERY event
+    if (isRecoverySession === null) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-slate-500 font-medium">Verifying your reset link…</p>
+                </div>
+            </div>
+        )
+    }
+
+    // Show an error screen for direct navigation or expired links
+    if (isRecoverySession === false) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4">
+                <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-200 p-8 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <ShieldX className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Link Invalid or Expired</h2>
+                    <p className="text-slate-500 mb-6">
+                        This password reset link has expired or was already used. Please request a new one.
+                    </p>
+                    <Link
+                        to="/forgot-password"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
+                    >
+                        Request a New Link
+                    </Link>
+                    <div className="mt-4">
+                        <Link to="/login" className="text-sm text-slate-500 hover:text-emerald-600 font-medium flex items-center justify-center gap-1">
+                            <ChevronLeft size={16} /> Back to Login
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -67,7 +154,7 @@ export default function ResetPassword() {
                             <p className="text-slate-500 mb-4">
                                 Your account password has been successfully updated.
                             </p>
-                            <p className="text-sm text-slate-400">Redirecting to login...</p>
+                            <p className="text-sm text-slate-400">Redirecting to the marketplace…</p>
                         </div>
                     ) : (
                         <>

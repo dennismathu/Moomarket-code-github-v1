@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 interface ProtectedRouteProps {
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
     const { user, loading } = useAuth()
+    const location = useLocation()
 
     // Show loading spinner while checking auth
     if (loading) {
@@ -22,9 +23,9 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
         )
     }
 
-    // Redirect to login if not authenticated
+    // Redirect to login — preserve the attempted path so LoginPage can redirect back
     if (!user) {
-        return <Navigate to="/login" replace />
+        return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />
     }
 
     // Check role if required - Admins can access everything

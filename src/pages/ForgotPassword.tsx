@@ -12,18 +12,15 @@ export default function ForgotPassword() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError('')
         setLoading(true)
 
-        const { error } = await resetPassword(email)
+        // Always show success — do NOT surface whether the email is registered.
+        // This prevents email enumeration: an attacker cannot tell if an account exists
+        // by watching whether they get an error or a success response.
+        await resetPassword(email)
 
-        if (error) {
-            setError(error.message)
-            setLoading(false)
-        } else {
-            setSuccess(true)
-            setLoading(false)
-        }
+        setSuccess(true)
+        setLoading(false)
     }
 
     return (

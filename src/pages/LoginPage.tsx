@@ -1,29 +1,69 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Lock } from 'lucide-react'
+
+// Map raw Supabase error messages to user-friendly strings
+const friendlyError = (msg: string): string => {
+    if (msg.includes('Invalid login credentials')) return 'Incorrect email or password. Please try again.'
+    if (msg.includes('Email not confirmed')) return 'Please verify your email address before signing in.'
+    if (msg.includes('too many requests') || msg.includes('rate limit')) return 'Too many attempts. Please wait a moment and try again.'
+    if (msg.includes('network') || msg.includes('fetch')) return 'Network error. Check your connection and try again.'
+    return msg
+}
 
 export default function LoginPage() {
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
+    const redirectTo = searchParams.get('redirect') || '/listings'
     const { signIn, signInWithGoogle } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    // Brute-force guard: lock form for 30s after 5 failed attempts
+    const [failCount, setFailCount] = useState(0)
+    const [lockoutSeconds, setLockoutSeconds] = useState(0)
+    const lockoutTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    useEffect(() => {
+        return () => { if (lockoutTimer.current) clearInterval(lockoutTimer.current) }
+    }, [])
+
+    const startLockout = () => {
+        let secs = 30
+        setLockoutSeconds(secs)
+        lockoutTimer.current = setInterval(() => {
+            secs -= 1
+            setLockoutSeconds(secs)
+            if (secs <= 0) {
+                clearInterval(lockoutTimer.current!)
+                lockoutTimer.current = null
+                setLockoutSeconds(0)
+                setFailCount(0)
+            }
+        }, 1000)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (lockoutSeconds > 0) return
         setError('')
         setLoading(true)
 
-        const { error } = await signIn(email, password)
-
-        if (error) {
-            setError(error.message)
+        try {
+            const { error } = await signIn(email, password)
+            if (error) {
+                const newFail = failCount + 1
+                setFailCount(newFail)
+                setError(friendlyError(error.message))
+                if (newFail >= 5) startLockout()
+            } else {
+                navigate(redirectTo, { replace: true })
+            }
+        } finally {
             setLoading(false)
-        } else {
-            navigate('/listings')
         }
     }
 
@@ -40,7 +80,15 @@ export default function LoginPage() {
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8">
-                    {error && (
+                    {lockoutSeconds > 0 && (
+                        <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center gap-3">
+                            <Lock size={18} className="text-orange-500 shrink-0" />
+                            <p className="text-sm text-orange-700 font-medium">
+                                Too many failed attempts. Try again in <span className="font-bold">{lockoutSeconds}s</span>.
+                            </p>
+                        </div>
+                    )}
+                    {error && !lockoutSeconds && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                             <p className="text-sm text-red-600 font-medium">{error}</p>
                         </div>
@@ -94,10 +142,10 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || lockoutSeconds > 0}
                             className="w-full py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? 'Signing in...' : 'Sign In'}
+                            {loading ? 'Signing in...' : lockoutSeconds > 0 ? `Locked (${lockoutSeconds}s)` : 'Sign In'}
                         </button>
                     </form>
 

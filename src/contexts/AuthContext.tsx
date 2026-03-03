@@ -36,10 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    // Fetch user profile from public.users table
-    const fetchUserProfile = async (userId: string, authUser?: SupabaseUser) => {
+    // Fetch user profile from public.users table.
+    // NOTE: Does NOT attempt a front-end INSERT fallback — that would bypass RLS
+    // and create ghost users that cause FK constraint failures downstream.
+    // If no profile row exists the user sees a clear error via the null return.
+    const fetchUserProfile = async (userId: string) => {
         try {
-            console.log('Fetching profile for user:', userId);
+            if (import.meta.env.DEV) console.log('Fetching profile for user:', userId);
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
@@ -52,42 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             if (!data) {
-                console.warn('No profile found in users table for ID:', userId);
-
-                // CRITICAL FIX: If user exists in Auth but not in public.users, 
-                // it means the trigger might have failed. Let's try to create it here.
-                if (authUser) {
-                    console.log('Attempting to create missing profile from frontend...');
-                    const { data: newData, error: insertError } = await supabase
-                        .from('users')
-                        .insert({
-                            id: userId,
-                            email: authUser.email!,
-                            full_name: authUser.user_metadata?.full_name || 'User',
-                            role: authUser.user_metadata?.role || 'buyer'
-                        })
-                        .select()
-                        .maybeSingle();
-
-                    if (insertError) {
-                        console.error('Failed to create missing profile:', insertError);
-                        // Return fallback profile from auth metadata as a last resort
-                        return {
-                            id: userId,
-                            email: authUser.email!,
-                            full_name: authUser.user_metadata?.full_name || 'User',
-                            role: authUser.user_metadata?.role || 'buyer',
-                            created_at: authUser.created_at,
-                            is_phone_verified: false,
-                            is_id_verified: false
-                        } as User;
-                    }
-                    return newData as User;
-                }
+                // The DB trigger failed to create the profile row.
+                // Return null — callers should surface a user-visible error.
+                console.error(
+                    'No profile row found in public.users for auth user:', userId,
+                    '— the DB trigger may have failed. Contact support.'
+                );
                 return null;
             }
 
-            console.log('Profile fetched successfully:', data);
+            if (import.meta.env.DEV) console.log('Profile fetched successfully for:', userId);
             return data as User
         } catch (error) {
             console.error('Error fetching user profile:', error)
@@ -97,45 +74,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Initialize auth state
     useEffect(() => {
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session)
+        let mounted = true;
+
+        // Get initial session — async so setLoading(false) only fires AFTER profile fetch
+        const initAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!mounted) return;
+
+            setSession(session);
             const currentSupabaseUser = session?.user ?? null;
-            setSupabaseUser(currentSupabaseUser)
+            setSupabaseUser(currentSupabaseUser);
 
             if (currentSupabaseUser) {
-                fetchUserProfile(currentSupabaseUser.id, currentSupabaseUser).then(setUser)
+                const profile = await fetchUserProfile(currentSupabaseUser.id);
+                if (mounted) setUser(profile);
             }
-            setLoading(false)
-        })
+            // setLoading only after the async profile fetch is fully resolved
+            if (mounted) setLoading(false);
+        };
 
-        // Listen for auth changes
+        initAuth();
+
+        // Listen for auth changes (sign-in, sign-out, token refresh, password recovery)
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session)
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (!mounted) return;
+
+            if (import.meta.env.DEV) console.log('Auth state change event:', event);
+
+            setSession(session);
             const currentSupabaseUser = session?.user ?? null;
-            setSupabaseUser(currentSupabaseUser)
+            setSupabaseUser(currentSupabaseUser);
 
-            if (currentSupabaseUser) {
-                fetchUserProfile(currentSupabaseUser.id, currentSupabaseUser).then(setUser)
-            } else {
-                setUser(null)
+            if (!currentSupabaseUser) {
+                setUser(null);
+                setLoading(false);
+                return;
             }
-            setLoading(false)
-        })
 
-        return () => subscription.unsubscribe()
+            // TOKEN_REFRESHED fires silently every ~1 hour and on tab focus.
+            // Skip the DB round-trip when we already have the profile in state.
+            if (event === 'TOKEN_REFRESHED' && user !== null) {
+                return;
+            }
+
+            const profile = await fetchUserProfile(currentSupabaseUser.id);
+            if (mounted) {
+                setUser(profile);
+                setLoading(false);
+            }
+        });
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // Sign up new user
     const signUp = async (email: string, password: string, fullName: string, role: 'buyer' | 'seller') => {
         try {
-            console.log('Attempting signUp for:', email, 'as', role);
+            if (import.meta.env.DEV) console.log('Attempting signUp as role:', role);
             const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
-            console.log('Redirecting to:', siteUrl);
 
-            const { data, error } = await supabase.auth.signUp({
+            const { error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
@@ -148,14 +152,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
 
             if (error) {
-                console.error('Supabase signUp error details:', error);
+                console.error('signUp error:', error.message);
                 throw error;
             }
 
-            console.log('Supabase signUp success, data:', data);
+            if (import.meta.env.DEV) console.log('signUp success');
             return { error: null }
         } catch (error) {
-            console.error('Catch signUp error:', error);
             return { error: error as Error }
         }
     }
@@ -163,22 +166,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign in existing user
     const signIn = async (email: string, password: string) => {
         try {
-            console.log('Attempting signIn for:', email);
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
             if (error) {
-                console.error('Supabase signIn error details:', error);
+                console.error('signIn error:', error.message);
                 throw error;
             }
 
-            console.log('Supabase signIn success, data:', data);
             setMessage({ text: 'Login successful!', type: 'success' })
             return { error: null }
         } catch (error) {
-            console.error('Catch signIn error:', error);
             return { error: error as Error }
         }
     }
@@ -186,10 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign in with Google
     const signInWithGoogle = async () => {
         try {
-            console.log('Attempting Google Sign-In');
             const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
 
-            const { data, error } = await supabase.auth.signInWithOAuth({
+            const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: `${siteUrl}`,
@@ -201,14 +200,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
 
             if (error) {
-                console.error('Supabase Google signIn error:', error);
+                console.error('Google signIn error:', error.message);
                 throw error;
             }
 
-            console.log('Google signIn initiated:', data);
             return { error: null };
         } catch (error) {
-            console.error('Catch Google signIn error:', error);
             return { error: error as Error };
         }
     };
@@ -216,21 +213,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Reset password
     const resetPassword = async (email: string) => {
         try {
-            console.log('Attempting password reset for:', email);
             const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${siteUrl}/reset-password`,
             })
 
             if (error) {
-                console.error('Supabase resetPassword error details:', error);
+                // Don't log the email — surface error internally only
+                console.error('resetPassword error:', error.message);
                 throw error;
             }
 
-            console.log('Supabase resetPassword success');
             return { error: null }
         } catch (error) {
-            console.error('Catch resetPassword error:', error);
             return { error: error as Error }
         }
     }
@@ -238,20 +233,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Update password
     const updatePassword = async (password: string) => {
         try {
-            console.log('Attempting password update');
             const { error } = await supabase.auth.updateUser({
                 password: password
             })
 
             if (error) {
-                console.error('Supabase updatePassword error details:', error);
+                console.error('updatePassword error:', error.message);
                 throw error;
             }
 
-            console.log('Supabase updatePassword success');
             return { error: null }
         } catch (error) {
-            console.error('Catch updatePassword error:', error);
             return { error: error as Error }
         }
     }
@@ -270,22 +262,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             if (!supabaseUser) throw new Error('No user logged in');
 
-            console.log('Attempting profile update for:', supabaseUser.id, updates);
             const { error } = await supabase
                 .from('users')
                 .update(updates)
                 .eq('id', supabaseUser.id);
 
             if (error) {
-                console.error('Supabase updateProfile error details:', error);
+                console.error('updateProfile error:', error.message);
                 throw error;
             }
 
-            console.log('Supabase updateProfile success');
             await refreshUser();
             return { error: null }
         } catch (error) {
-            console.error('Catch updateProfile error:', error);
             return { error: error as Error }
         }
     }
@@ -293,8 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Refresh user profile
     const refreshUser = async () => {
         if (supabaseUser) {
-            // Pass supabaseUser to ensure fallback is used if DB record isn't ready
-            const profile = await fetchUserProfile(supabaseUser.id, supabaseUser)
+            const profile = await fetchUserProfile(supabaseUser.id)
             setUser(profile)
         }
     }
