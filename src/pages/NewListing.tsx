@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { createListing, addListingMedia, getListingById, updateListing, deleteListingMedia } from '../lib/database';
 import { FileUpload } from '../components/FileUpload';
-import { ChevronRight, Camera, Video, FileText, Check, AlertCircle, MapPin, Baby, Calendar, ArrowLeft, Droplets, Loader2 } from 'lucide-react';
+import { ChevronRight, Check, AlertCircle, ArrowLeft, Droplets, Loader2 } from 'lucide-react';
 
 interface UploadedFile {
   url: string;
@@ -73,6 +73,7 @@ export default function NewListing() {
             data.milk_yield_day_6 || 0,
             data.milk_yield_day_7 || 0,
           ],
+          customBreed: '',
         };
         setFormData(mappedData);
         setInitialData(mappedData);
@@ -206,7 +207,7 @@ export default function NewListing() {
           listing.id,
           file.url,
           file.path,
-          file.type,
+          file.type as 'photo' | 'video_walking' | 'video_milking',
           i
         );
       }
@@ -225,8 +226,6 @@ export default function NewListing() {
   };
 
   const avgYield = (formData.milkYield.reduce((a, b) => a + b, 0) / 7).toFixed(1);
-  const photoCount = uploadedFiles.filter(f => f.type === 'photo').length;
-  const videoCount = uploadedFiles.filter(f => f.type !== 'photo').length;
 
   return (
     <div className="bg-slate-50 min-h-screen py-8">

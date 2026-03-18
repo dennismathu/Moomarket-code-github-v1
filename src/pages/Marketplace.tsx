@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, MapPin, BadgeCheck, ChevronDown, List, LayoutGrid, Smartphone, ShieldCheck, Droplets, Baby, Activity, Loader2, AlertCircle, ArrowRight, Calendar, Milk, Syringe, BugOff } from 'lucide-react';
+import { Filter, Search, MapPin, List, LayoutGrid, ShieldCheck, Droplets, Baby, Loader2, AlertCircle, ArrowRight, Milk, Syringe, BugOff } from 'lucide-react';
 import { getListings, getSellerProfile } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -399,7 +399,7 @@ export default function Marketplace() {
                                 listing.is_vaccinated && { icon: <Syringe size={12} />, label: 'Vaccinated', color: 'bg-blue-50 text-blue-600 border-blue-100' },
                                 listing.is_dewormed && { icon: <BugOff size={12} />, label: 'Dewormed', color: 'bg-orange-50 text-orange-600 border-orange-100' }
                               ]
-                                .filter((b): b is { icon: React.ReactNode; label: string; color: string } => !!b)
+                                .filter((b): b is { icon: React.ReactElement; label: string; color: string } => !!b)
                                 .slice(0, 2)
                                 .map((badge, idx) => (
                                   <div

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Video, MessageSquare, Truck, ArrowRight, CheckCircle2, Star, Search, UserPlus, FileSearch, Handshake } from 'lucide-react';
+import { ShieldCheck, Video, MessageSquare, Truck, ArrowRight, CheckCircle2, Search, FileSearch, Handshake } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
   return (

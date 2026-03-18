@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Calendar, MapPin, CheckCircle, Clock, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
+import { Bell, Calendar, MapPin, CheckCircle, Clock, RefreshCw, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getNotifications } from '../lib/database';
 
@@ -229,7 +229,7 @@ const NotificationHub: React.FC = () => {
                                                     </Link>
                                                     {n.type === 'action' && (
                                                         <Link
-                                                            to={user.role === 'seller' ? `/dashboard/seller${n.isSeller ? '#upcoming-inspections' : '#your-visits'}` : '/dashboard/buyer'}
+                                                            to={user?.role === 'seller' ? `/dashboard/seller${n.isSeller ? '#upcoming-inspections' : '#your-visits'}` : '/dashboard/buyer'}
                                                             className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-colors"
                                                         >
                                                             Take Action <ChevronRight size={12} />

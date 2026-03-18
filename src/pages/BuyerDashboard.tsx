@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageSquare, Clock, MapPin, ChevronRight, Bookmark, Search, Shield, CalendarCheck, Calendar } from 'lucide-react';
+import { Clock, MapPin, ChevronRight, Bookmark, Search, Shield, CalendarCheck, Calendar } from 'lucide-react';
 import { getSavedListings, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 

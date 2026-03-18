@@ -2,18 +2,22 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Bell, LayoutDashboard, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getInspectionRequestsBySeller, getNotifications } from '../../lib/database';
+import { getNotifications } from '../../lib/database';
 
 const Navbar = () => {
-    const { user, signOut } = useAuth();
+    const { user, supabaseUser, signOut } = useAuth();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
 
+    // Profile Fallbacks (if row missing in public.users)
+    const displayName = user?.full_name || supabaseUser?.user_metadata?.full_name || supabaseUser?.email?.split('@')[0] || 'User';
+    const displayRole = user?.role || supabaseUser?.user_metadata?.role || 'buyer';
+
     useEffect(() => {
-        if (user) {
+        if (supabaseUser) {
             fetchNotifications();
             const interval = setInterval(fetchNotifications, 10000);
 
@@ -99,7 +103,7 @@ const Navbar = () => {
                     </div>
 
                     <div className="hidden md:flex items-center space-x-4">
-                        {user ? (
+                        {supabaseUser ? (
                             <div className="flex items-center gap-4">
                                 <div className="relative notifications-container">
                                     <button
@@ -126,8 +130,9 @@ const Navbar = () => {
                                                     </div>
                                                 ) : (
                                                     notifications.map(n => {
-                                                        const isSeller = n.listing.seller_id === user.id;
-                                                        const isBuyer = n.buyer_id === user.id;
+                                                        const currentUserId = user?.id || supabaseUser?.id;
+                                                        const isSeller = n.listing.seller_id === currentUserId;
+                                                        const isBuyer = n.buyer_id === currentUserId;
 
                                                         return (
                                                             <div
@@ -215,7 +220,7 @@ const Navbar = () => {
                                         </div>
                                     )}
                                 </div>
-                                {user.role === 'admin' ? (
+                                {displayRole === 'admin' ? (
                                     <div className="flex items-center gap-2">
                                         <Link
                                             to="/admin"
@@ -233,8 +238,8 @@ const Navbar = () => {
                                         </Link>
                                     </div>
                                 ) : (
-                                    <Link
-                                        to={user.role === 'seller' ? '/dashboard/seller' : '/dashboard/buyer'}
+                                     <Link
+                                        to={displayRole === 'seller' ? '/dashboard/seller' : '/dashboard/buyer'}
                                         className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full hover:bg-emerald-100 transition-colors border border-emerald-100"
                                     >
                                         <LayoutDashboard size={18} />
@@ -242,11 +247,11 @@ const Navbar = () => {
                                     </Link>
                                 )}
                                 <div className="h-8 w-[1px] bg-slate-200"></div>
-                                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                 <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                                     <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
-                                        {user.full_name.charAt(0)}
+                                        {displayName.charAt(0)}
                                     </div>
-                                    <span className="text-sm font-medium text-slate-700">{user.full_name}</span>
+                                    <span className="text-sm font-medium text-slate-700">{displayName}</span>
                                 </Link>
                                 <button
                                     onClick={handleSignOut}
@@ -275,8 +280,8 @@ const Navbar = () => {
                     </div>
 
                     {/* Mobile menu button */}
-                    <div className="flex items-center gap-1 md:hidden">
-                        {user && (
+                     <div className="flex items-center gap-1 md:hidden">
+                        {supabaseUser && (
                             <Link
                                 to="/notifications"
                                 className="relative p-2 text-slate-500 hover:text-emerald-600 transition-colors"
@@ -300,12 +305,12 @@ const Navbar = () => {
             {isMobileMenuOpen && (
                 <div className="md:hidden bg-white border-t border-slate-100 px-4 pt-2 pb-6 space-y-1 shadow-lg">
                     <Link to="/" className="block px-3 py-4 text-base font-medium text-slate-700 border-b border-slate-50" onClick={toggleMobileMenu}>Home</Link>
-                    <Link to="/listings" className="block px-3 py-4 text-base font-medium text-slate-700 border-b border-slate-50" onClick={toggleMobileMenu}>Browse Marketplace</Link>
-                    {(user?.role === 'seller' || user?.role === 'admin') && (
+                     <Link to="/listings" className="block px-3 py-4 text-base font-medium text-slate-700 border-b border-slate-50" onClick={toggleMobileMenu}>Browse Marketplace</Link>
+                    {(displayRole === 'seller' || displayRole === 'admin') && (
                         <Link to="/seller/new-listing" className="block px-3 py-4 text-base font-medium text-slate-700 border-b border-slate-50" onClick={toggleMobileMenu}>Sell a Cow</Link>
                     )}
 
-                    {user ? (
+                     {supabaseUser ? (
                         <>
                             <Link to="/profile" className="block px-3 py-4 text-base font-medium text-slate-700 border-b border-slate-50" onClick={toggleMobileMenu}>
                                 <div className="flex items-center gap-2 text-slate-700">
@@ -313,7 +318,7 @@ const Navbar = () => {
                                     Your Profile
                                 </div>
                             </Link>
-                            {user.role === 'admin' ? (
+                                 {displayRole === 'admin' ? (
                                 <>
                                     <Link to="/admin" className="block px-3 py-4 text-base font-bold text-slate-900 border-b border-slate-50" onClick={toggleMobileMenu}>
                                         <div className="flex items-center gap-2">
@@ -329,7 +334,7 @@ const Navbar = () => {
                                     </Link>
                                 </>
                             ) : (
-                                <Link to={user.role === 'seller' ? '/dashboard/seller' : '/dashboard/buyer'} className="block px-3 py-4 text-base font-bold text-emerald-600" onClick={toggleMobileMenu}>
+                                 <Link to={displayRole === 'seller' ? '/dashboard/seller' : '/dashboard/buyer'} className="block px-3 py-4 text-base font-bold text-emerald-600" onClick={toggleMobileMenu}>
                                     <div className="flex items-center gap-2">
                                         <LayoutDashboard size={18} />
                                         Go to My Dashboard

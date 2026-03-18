@@ -7,7 +7,7 @@ export default function ForgotPassword() {
     const { resetPassword } = useAuth()
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+
     const [success, setSuccess] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -56,12 +56,6 @@ export default function ForgotPassword() {
                         </div>
                     ) : (
                         <>
-                            {error && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                                    <p className="text-sm text-red-600 font-medium">{error}</p>
-                                </div>
-                            )}
-
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">

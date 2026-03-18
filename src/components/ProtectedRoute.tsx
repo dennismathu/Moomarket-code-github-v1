@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 interface ProtectedRouteProps {
@@ -10,13 +10,14 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
     const { user, loading } = useAuth()
     const location = useLocation()
+    const navigate = useNavigate()
 
     // Show loading spinner while checking auth
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <div data-testid="auth-spinner" className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="text-slate-500 font-medium">Loading...</p>
                 </div>
             </div>
@@ -43,7 +44,7 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
                         You don't have permission to access this page. This page requires {requireRole} role.
                     </p>
                     <button
-                        onClick={() => window.history.back()}
+                        onClick={() => navigate(-1)}
                         className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
                     >
                         Go Back

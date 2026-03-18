@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, CheckCircle, XCircle, FileText, ExternalLink, AlertTriangle, Eye, Users, TrendingUp, MapPin, Loader2, BarChart3, Trash2, Camera, Copy, Info, X } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, FileText, AlertTriangle, Eye, Users, TrendingUp, MapPin, Loader2, BarChart3, Trash2, Camera, Copy, X } from 'lucide-react';
 import { getAllListingsForAdmin, updateListingStatus, getAdminMetrics, deleteListing, getAllFeedback } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -88,19 +88,19 @@ const AdminPanel: React.FC = () => {
         <div className="flex gap-4 mb-8">
           <button
             onClick={() => setActiveTab('moderation')}
-            className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'moderation' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'}`}
+            className={`px - 6 py - 2 rounded - lg font - bold text - sm transition - all ${activeTab === 'moderation' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'} `}
           >
             Moderation
           </button>
           <button
             onClick={() => setActiveTab('metrics')}
-            className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'metrics' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'}`}
+            className={`px - 6 py - 2 rounded - lg font - bold text - sm transition - all ${activeTab === 'metrics' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'} `}
           >
             Platform Metrics
           </button>
           <button
             onClick={() => setActiveTab('feedback')}
-            className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'feedback' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'}`}
+            className={`px - 6 py - 2 rounded - lg font - bold text - sm transition - all ${activeTab === 'feedback' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600'} `}
           >
             User Feedback
           </button>
@@ -117,7 +117,7 @@ const AdminPanel: React.FC = () => {
                 { label: 'Platform Growth', value: '+12%', icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                  <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
+                  <div className={`w - 12 h - 12 ${stat.bg} ${stat.color} rounded - 2xl flex items - center justify - center mb - 4`}>
                     <stat.icon size={24} />
                   </div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
@@ -143,7 +143,7 @@ const AdminPanel: React.FC = () => {
                         <div className="h-1.5 bg-slate-100 rounded-full flex-1 overflow-hidden">
                           <div
                             className="h-full bg-emerald-500 rounded-full"
-                            style={{ width: `${(item.value / metrics.topBreeds[0].value) * 100}%` }}
+                            style={{ width: `${(item.value / metrics.topBreeds[0].value) * 100}% ` }}
                           />
                         </div>
                         <span className="text-xs font-bold text-slate-900 w-8 text-right">{item.value}</span>
@@ -169,7 +169,7 @@ const AdminPanel: React.FC = () => {
                         <div className="h-1.5 bg-slate-100 rounded-full flex-1 overflow-hidden">
                           <div
                             className="h-full bg-blue-500 rounded-full"
-                            style={{ width: `${(item.value / metrics.topLocations[0].value) * 100}%` }}
+                            style={{ width: `${(item.value / metrics.topLocations[0].value) * 100}% ` }}
                           />
                         </div>
                         <span className="text-xs font-bold text-slate-900 w-8 text-right">{item.value}</span>
@@ -189,7 +189,7 @@ const AdminPanel: React.FC = () => {
                 </div>
                 <div className="p-6 space-y-4">
                   {metrics?.mostViewedListings.map((item: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between group cursor-pointer" onClick={() => window.open(`/listing/${item.id}`, '_blank')}>
+                    <div key={i} className="flex items-center justify-between group cursor-pointer" onClick={() => window.open(`/ listing / ${item.id} `, '_blank')}>
                       <div>
                         <p className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors uppercase">{item.breed}</p>
                         <p className="text-[10px] text-slate-400 font-bold">KSh {item.price.toLocaleString()}</p>
@@ -221,10 +221,10 @@ const AdminPanel: React.FC = () => {
                     {feedback.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-6">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.type === 'bug_report' ? 'text-red-600 bg-red-50 border-red-100' :
+                          <span className={`inline - flex items - center gap - 1 text - [10px] font - bold px - 2 py - 0.5 rounded - full border ${item.type === 'bug_report' ? 'text-red-600 bg-red-50 border-red-100' :
                             item.type === 'feature_idea' ? 'text-amber-600 bg-amber-50 border-amber-100' :
                               'text-blue-600 bg-blue-50 border-blue-100'
-                            }`}>
+                            } `}>
                             {item.type.replace('_', ' ').toUpperCase()}
                           </span>
                         </td>
@@ -318,10 +318,10 @@ const AdminPanel: React.FC = () => {
                         </td>
                         <td className="px-6 py-6">
                           <div className="space-y-1.5">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cow.status === 'approved' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' :
+                            <span className={`inline - flex items - center gap - 1 text - [10px] font - bold px - 2 py - 0.5 rounded - full border ${cow.status === 'approved' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' :
                               cow.status === 'rejected' ? 'text-red-600 bg-red-50 border-red-100' :
                                 'text-amber-600 bg-amber-50 border-amber-100'
-                              }`}>
+                              } `}>
                               {cow.status.toUpperCase()}
                             </span>
                             {cow.vet?.[0]?.is_verified ? (
@@ -356,7 +356,7 @@ const AdminPanel: React.FC = () => {
                               </button>
                             )}
                             <button
-                              onClick={() => window.open(`/listing/${cow.id}`, '_blank')}
+                              onClick={() => window.open(`/ listing / ${cow.id} `, '_blank')}
                               className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
                               title="View Public Detail"
                             >
@@ -397,10 +397,10 @@ const AdminPanel: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cow.status === 'approved' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' :
+                      <span className={`inline - flex items - center gap - 1 text - [10px] font - bold px - 2 py - 0.5 rounded - full border ${cow.status === 'approved' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' :
                         cow.status === 'rejected' ? 'text-red-600 bg-red-50 border-red-100' :
                           'text-amber-600 bg-amber-50 border-amber-100'
-                        }`}>
+                        } `}>
                         {cow.status.toUpperCase()}
                       </span>
                       {cow.vet?.[0]?.is_verified && (
@@ -441,7 +441,7 @@ const AdminPanel: React.FC = () => {
                     )}
                     <div className="flex gap-2 w-full sm:w-auto">
                       <button
-                        onClick={() => window.open(`/listing/${cow.id}`, '_blank')}
+                        onClick={() => window.open(`/ listing / ${cow.id} `, '_blank')}
                         className="flex-1 sm:flex-none p-3 bg-white border border-slate-200 text-slate-600 rounded-xl transition-colors active:bg-slate-50 flex items-center justify-center"
                       >
                         <Eye size={18} />
@@ -478,10 +478,10 @@ const AdminPanel: React.FC = () => {
             </div>
             <div className="p-8">
               <div className="flex items-center gap-2 mb-6">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${selectedFeedback.type === 'bug_report' ? 'text-red-600 bg-red-50' :
+                <span className={`px - 2 py - 0.5 rounded - full text - [10px] font - bold uppercase ${selectedFeedback.type === 'bug_report' ? 'text-red-600 bg-red-50' :
                   selectedFeedback.type === 'feature_idea' ? 'text-amber-600 bg-amber-50' :
                     'text-blue-600 bg-blue-50'
-                  }`}>
+                  } `}>
                   {selectedFeedback.type.replace('_', ' ')}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(selectedFeedback.created_at).toLocaleDateString()}</span>

@@ -1,26 +1,20 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
    ShoppingBag, MessageSquare, Calendar, ChevronRight, CheckCircle,
    Clock, Plus, ShieldCheck, Eye, TrendingUp, Award, Settings,
    BarChart3, CheckCircle2, MessageSquareText, Star, Edit3,
-   Trash2, BellRing, Info, X, Droplets, Baby, Loader2, Bookmark, MapPin, Users, AlertTriangle
+   Trash2, BellRing, Info, X, Loader2, Bookmark, MapPin, Users, AlertTriangle
 } from 'lucide-react';
 import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
-import { User, CowListing } from '../types/types';
 
-interface DashboardProps {
-   user: User | null;
-}
 
 const SellerDashboard: React.FC = () => {
    const { user } = useAuth();
    const navigate = useNavigate();
    const [sellerListings, setSellerListings] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
-   const [error, setError] = useState<string | null>(null);
    const [selectedCowForManagement, setSelectedCowForManagement] = useState<any | null>(null);
    const [selectedCowForSold, setSelectedCowForSold] = useState<any | null>(null);
    const [soldFeedback, setSoldFeedback] = useState('');
@@ -135,8 +129,7 @@ const SellerDashboard: React.FC = () => {
          if (error) throw error;
          setSellerListings(data || []);
       } catch (err) {
-         console.error('Error fetching seller listings:', err);
-         setError(err instanceof Error ? err.message : 'Failed to load listings');
+         console.error('Error fetching seller listings:', err instanceof Error ? err.message : 'Failed to load listings');
       } finally {
          setLoading(false);
       }

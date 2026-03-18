@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -36,7 +36,7 @@ const Toast: React.FC = () => {
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className={`${bgClass} text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10`}>
+      <div className={`${bgClass} text - white px - 6 py - 3 rounded - 2xl shadow - 2xl flex items - center gap - 3 border border - white / 10`}>
         <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
         <span className="text-sm font-bold tracking-tight">{message.text}</span>
       </div>

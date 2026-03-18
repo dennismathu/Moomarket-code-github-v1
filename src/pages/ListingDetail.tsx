@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
-  MapPin, Heart, Share2, Info, ChevronLeft, ChevronRight,
-  MessageSquare, Calendar, ShieldCheck, ArrowRight, Home,
-  LayoutDashboard, Search, Settings, User, BadgeCheck,
-  AlertTriangle, Truck, Play, X, Baby, Smartphone,
-  Droplets, Phone, Lock, Zap, Loader2, Video,
+  MapPin, Heart, Share2, ChevronLeft, ChevronRight,
+  MessageSquare, Calendar, ShieldCheck, LayoutDashboard, BadgeCheck,
+  AlertTriangle, X, Baby, Smartphone,
+  Droplets, Phone, Zap, Loader2, Video,
   CalendarDays, Check, ArrowLeft
 } from 'lucide-react'
 import {
@@ -13,13 +12,11 @@ import {
   saveListing, unsaveListing, trackShareEvent, updateInspectionRequest
 } from '../lib/database'
 import { useAuth } from '../contexts/AuthContext'
-import Navbar from '../components/layout/Navbar'
 import ShareModal from '../components/share/ShareModal'
 import { supabase } from '../lib/supabase';
 
 const ListingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { user, setMessage } = useAuth();
   const [cow, setCow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -341,13 +338,13 @@ const ListingDetail: React.FC = () => {
                 </div>
 
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-                  {cowPhotos.map((_, idx) => (
+                  {cowPhotos.map((_: string, idx: number) => (
                     <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`h-1.5 rounded-full transition-all ${currentImageIndex === idx ? 'bg-white w-6' : 'bg-white/40 w-1.5'}`} />
                   ))}
                 </div>
               </div>
               <div className="p-4 flex gap-3 overflow-x-auto scrollbar-hide">
-                {cowPhotos.map((photo, idx) => (
+                {cowPhotos.map((photo: string, idx: number) => (
                   <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-emerald-500 shadow-lg' : 'border-transparent opacity-60'}`}>
                     <img src={photo} className="w-full h-full object-cover" alt={`Thumbnail ${idx + 1}`} />
                   </button>

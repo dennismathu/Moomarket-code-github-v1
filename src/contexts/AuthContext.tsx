@@ -3,6 +3,9 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { User } from '../types/types'
 
+/** How long (ms) status messages are shown before auto-dismissing. */
+const MESSAGE_DISMISS_MS = 3000
+
 interface AuthContextType {
     user: User | null
     supabaseUser: SupabaseUser | null
@@ -32,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const setMessage = (msg: { text: string; type: 'success' | 'error' | 'info' } | null) => {
         setMessageState(msg)
         if (msg) {
-            setTimeout(() => setMessageState(null), 3000)
+            setTimeout(() => setMessageState(null), MESSAGE_DISMISS_MS)
         }
     }
 

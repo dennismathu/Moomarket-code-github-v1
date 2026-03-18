@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Shield, MapPin, Smartphone, User, FileCheck, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, MapPin, Smartphone, User, FileCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { createOrUpdateSellerProfile, uploadImage } from '../lib/database';
+import { createOrUpdateSellerProfile } from '../lib/database';
 import { FileUpload } from '../components/FileUpload';
-import { COUNTIES } from '../data/counties';
 
 const SellerOnboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -56,7 +55,7 @@ const SellerOnboarding: React.FC = () => {
       if (profileError) throw profileError;
 
       // 2. Create/Update seller profile with farm name
-      const finalFarmName = formData.farmName.trim() || `${user.full_name}'s Farm`;
+      const finalFarmName = formData.farmName.trim() || `${user!.full_name}'s Farm`;
       const { error: sellerError } = await createOrUpdateSellerProfile(user!.id, {
         farm_name: finalFarmName,
         farm_location: formData.farmLocation,
@@ -90,7 +89,7 @@ const SellerOnboarding: React.FC = () => {
         }));
         setLoading(false);
       },
-      (error) => {
+      (_err) => {
         setError('Unable to retrieve your location');
         setLoading(false);
       }
@@ -108,7 +107,7 @@ const SellerOnboarding: React.FC = () => {
 
     try {
       // Update seller profile logic
-      const finalFarmName = formData.farmName.trim() || `${user.full_name}'s Farm`;
+      const finalFarmName = formData.farmName.trim() || `${user!.full_name}'s Farm`;
       const updates: any = {
         verification_status: 'pending', // 'unverified' is not a valid enum value, using 'pending' as default
         farm_name: finalFarmName,

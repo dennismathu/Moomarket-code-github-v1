@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { User, ChevronLeft, Save, MapPin, Phone, User as UserIcon, CheckCircle2, ArrowRight, LayoutDashboard, ShoppingBag } from 'lucide-react'
+import { ChevronLeft, Save, MapPin, Phone, User as UserIcon, CheckCircle2, ArrowRight, LayoutDashboard, ShoppingBag } from 'lucide-react'
 
 import { COUNTIES } from '../data/counties'
 
@@ -26,15 +26,9 @@ export default function ProfilePage() {
                 full_name: user.full_name || '',
                 phone_number: user.phone_number || '+254',
                 county: user.county || '',
-                specific_location: user.specific_location || ''
-            })
-            setFormData({
-                full_name: user.full_name || '',
-                phone_number: user.phone_number || '+254',
-                county: user.county || '',
                 specific_location: user.specific_location || '',
-                farm_name: user.seller_profile?.farm_name || '',
-                farm_location: user.seller_profile?.farm_location || ''
+                farm_name: (user as any).seller_profile?.farm_name || '',
+                farm_location: (user as any).seller_profile?.farm_location || ''
             })
         }
     }, [user])
@@ -45,8 +39,8 @@ export default function ProfilePage() {
         formData.county !== (user.county || '') ||
         formData.specific_location !== (user.specific_location || '') ||
         (user.role === 'seller' && (
-            formData.farm_name !== (user.seller_profile?.farm_name || '') ||
-            formData.farm_location !== (user.seller_profile?.farm_location || '')
+            formData.farm_name !== ((user as any).seller_profile?.farm_name || '') ||
+            formData.farm_location !== ((user as any).seller_profile?.farm_location || '')
         ))
     ) : false;
 

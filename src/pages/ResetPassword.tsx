@@ -95,7 +95,7 @@ export default function ResetPassword() {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <div data-testid="auth-spinner" className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-slate-500 font-medium">Verifying your reset link…</p>
                 </div>
             </div>
