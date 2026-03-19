@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search, MapPin, List, LayoutGrid, ShieldCheck, Droplets, Baby, Loader2, AlertCircle, ArrowRight, Milk, Syringe, BugOff } from 'lucide-react';
+import { Filter, Search, MapPin, List, LayoutGrid, ShieldCheck, Droplets, Baby, Loader2, AlertCircle, ArrowRight, Milk, Syringe, BugOff, SlidersHorizontal, X } from 'lucide-react';
 import { getListings, getSellerProfile } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -48,6 +48,14 @@ export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
+  const [minAge, setMinAge] = useState<string>('');
+  const [maxAge, setMaxAge] = useState<string>('');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Prevent non-numeric keys in number inputs (e, +, -)
+  const blockNonNumeric = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault();
+  }, []);
 
   // Fetch listings on mount
   useEffect(() => {
@@ -97,6 +105,8 @@ export default function Marketplace() {
       const matchDewormed = !isDewormedOnly || listing.is_dewormed;
       const matchMinPrice = !minPrice || listing.price >= parseFloat(minPrice);
       const matchMaxPrice = !maxPrice || listing.price <= parseFloat(maxPrice);
+      const matchMinAge = !minAge || listing.age >= parseInt(minAge);
+      const matchMaxAge = !maxAge || listing.age <= parseInt(maxAge);
 
       const matchSearch = listing.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
         listing.county.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -105,9 +115,10 @@ export default function Marketplace() {
       return matchBreed && matchCounty && matchYield &&
         matchPregnant && matchVaccinated && matchDewormed &&
         matchMinPrice && matchMaxPrice &&
+        matchMinAge && matchMaxAge &&
         matchSearch;
     });
-  }, [listings, filterBreed, filterCounty, minMilkYield, isPregnantOnly, isVaccinatedOnly, isDewormedOnly, searchTerm, minPrice, maxPrice]);
+  }, [listings, filterBreed, filterCounty, minMilkYield, isPregnantOnly, isVaccinatedOnly, isDewormedOnly, searchTerm, minPrice, maxPrice, minAge, maxAge]);
 
   const clearFilters = () => {
     setFilterBreed('All');
@@ -119,6 +130,8 @@ export default function Marketplace() {
     setSearchTerm('');
     setMinPrice('');
     setMaxPrice('');
+    setMinAge('');
+    setMaxAge('');
   };
 
   const counties = ["Kiambu", "Nakuru", "Nyeri", "Murang'a", "Bomet", "Meru", "Uasin Gishu", "Kericho", "Nyandarua", "Kirinyaga"];
@@ -162,20 +175,57 @@ export default function Marketplace() {
           </div>
         </div>
 
+        {/* Mobile Filters Toggle Button */}
+        <div className="lg:hidden mb-4">
+          <button
+            onClick={() => setMobileFiltersOpen(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <SlidersHorizontal size={16} className="text-emerald-600" />
+            Filters
+            {(filterBreed !== 'All' || filterCounty !== 'All' || minPrice || maxPrice || minMilkYield > 0 || isPregnantOnly || isVaccinatedOnly || isDewormedOnly || minAge || maxAge) && (
+              <span className="ml-1 px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-black rounded-full">ON</span>
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Filter Drawer Backdrop */}
+        {mobileFiltersOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+        )}
+
         <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-          <aside className="mb-8 lg:mb-0 space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          {/* Filter Sidebar - hidden on mobile unless drawer is open */}
+          <aside className={`
+            mb-8 lg:mb-0 space-y-6
+            fixed inset-y-0 left-0 z-50 w-80 bg-white overflow-y-auto p-6 transition-transform duration-300 shadow-2xl
+            lg:relative lg:inset-auto lg:w-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:translate-x-0 lg:block lg:overflow-visible
+            ${mobileFiltersOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 lg:rounded-2xl">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Filter size={18} className="text-emerald-600" />
                   <h3 className="font-bold text-slate-800">Filters</h3>
                 </div>
-                <button
-                  onClick={clearFilters}
-                  className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-widest"
-                >
-                  Clear All
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={clearFilters}
+                    className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-widest"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
+                    aria-label="Close filters"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-8">
@@ -201,16 +251,47 @@ export default function Marketplace() {
                     <input
                       type="number"
                       placeholder="Min"
+                      min={0}
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={minPrice}
+                      onKeyDown={blockNonNumeric}
                       onChange={(e) => setMinPrice(e.target.value)}
                     />
                     <input
                       type="number"
                       placeholder="Max"
+                      min={0}
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={maxPrice}
+                      onKeyDown={blockNonNumeric}
                       onChange={(e) => setMaxPrice(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Age Filter */}
+                <div className="pt-6 border-t border-slate-100">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Age (Years)</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      min={0}
+                      max={20}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      value={minAge}
+                      onKeyDown={blockNonNumeric}
+                      onChange={(e) => setMinAge(e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      min={0}
+                      max={20}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      value={maxAge}
+                      onKeyDown={blockNonNumeric}
+                      onChange={(e) => setMaxAge(e.target.value)}
                     />
                   </div>
                 </div>
