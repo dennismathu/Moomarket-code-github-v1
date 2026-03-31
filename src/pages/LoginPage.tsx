@@ -17,7 +17,7 @@ export default function LoginPage() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const redirectTo = searchParams.get('redirect') || '/listings'
-    const { signIn, signInWithGoogle, loading: authLoading } = useAuth()
+    const { signIn, signInWithGoogle, user, loading: authLoading } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -29,8 +29,12 @@ export default function LoginPage() {
     const lockoutTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
     useEffect(() => {
+        // If user is already present (e.g. from a previous session or back-channel login), redirect immediately
+        if (user && !authLoading) {
+            navigate(redirectTo, { replace: true });
+        }
         return () => { if (lockoutTimer.current) clearInterval(lockoutTimer.current) }
-    }, [])
+    }, [user, authLoading, navigate, redirectTo])
 
     const startLockout = () => {
         let secs = 30
@@ -54,7 +58,7 @@ export default function LoginPage() {
         setLoading(true)
 
         try {
-            const { error } = await signIn(email, password)
+            const { error } = await signIn(email.trim(), password)
             if (error) {
                 const newFail = failCount + 1
                 setFailCount(newFail)

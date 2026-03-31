@@ -71,6 +71,9 @@ function anySignal(signals: AbortSignal[]): AbortSignal {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { fetch: fetchWithRetry as typeof fetch },
-})
+// export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+//     global: { fetch: fetchWithRetry as typeof fetch },
+// })
+
+// Reverting to default fetch to debug auth hanging issues
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)

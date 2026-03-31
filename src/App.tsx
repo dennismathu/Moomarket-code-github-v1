@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import Navbar from './components/layout/Navbar';
@@ -48,6 +49,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
+        <NotificationProvider>
         <ScrollToTop />
         <Toast />
         <div className="min-h-screen flex flex-col font-sans">
@@ -148,6 +150,7 @@ const App: React.FC = () => {
 
           <Footer />
         </div>
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   );
