@@ -58,7 +58,7 @@ export default function LoginPage() {
         setLoading(true)
 
         try {
-            const { error } = await signIn(email, password)
+            const { error } = await signIn(email.trim(), password)
             if (error) {
                 const newFail = failCount + 1
                 setFailCount(newFail)
