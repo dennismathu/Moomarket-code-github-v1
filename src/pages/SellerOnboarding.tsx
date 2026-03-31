@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, MapPin, Smartphone, User, FileCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { createOrUpdateSellerProfile } from '../lib/database';
+import { updateSellerProfileAtomic } from '../lib/database';
 import { FileUpload } from '../components/FileUpload';
 
 const SellerOnboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateProfile, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,21 +48,18 @@ const SellerOnboarding: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Update user phone number
-      const { error: profileError } = await updateProfile({
-        phone_number: formData.phoneNumber
-      });
-      if (profileError) throw profileError;
-
-      // 2. Create/Update seller profile with farm name
       const finalFarmName = formData.farmName.trim() || `${user!.full_name}'s Farm`;
-      const { error: sellerError } = await createOrUpdateSellerProfile(user!.id, {
-        farm_name: finalFarmName,
-        farm_location: formData.farmLocation,
-        county: formData.county,
-        verification_status: 'pending' // Reset to pending if they are re-onboarding
+
+      // Single atomic RPC — updates users + seller_profiles in one transaction.
+      const { error: rpcError } = await updateSellerProfileAtomic({
+        userId:             user!.id,
+        phoneNumber:        formData.phoneNumber,
+        county:             formData.county,
+        farmName:           finalFarmName,
+        farmLocation:       formData.farmLocation,
+        verificationStatus: 'pending',
       });
-      if (sellerError) throw sellerError;
+      if (rpcError) throw rpcError;
 
       setStep(2);
     } catch (err: any) {
@@ -106,32 +103,25 @@ const SellerOnboarding: React.FC = () => {
     setError(null);
 
     try {
-      // Update seller profile logic
       const finalFarmName = formData.farmName.trim() || `${user!.full_name}'s Farm`;
-      const updates: any = {
-        verification_status: 'pending', // 'unverified' is not a valid enum value, using 'pending' as default
-        farm_name: finalFarmName,
-        farm_location: formData.farmLocation,
-        county: formData.county
-      };
 
-      if (!skip) {
-        updates.id_front_url = formData.idFrontUrl;
-        updates.id_back_url = formData.idBackUrl;
-        updates.id_front_path = formData.idFrontPath;
-        updates.id_back_path = formData.idBackPath;
-      }
-
-      // Update seller profile with ID document URLs (if not skipping)
-      const { error: sellerError } = await createOrUpdateSellerProfile(user!.id, updates);
-      if (sellerError) throw sellerError;
-
-      // Update user role to seller
-      const { error: profileUpdateError } = await updateProfile({
-        is_id_verified: false,
-        role: 'seller'
+      // Single atomic RPC — updates users role + seller_profiles (incl. ID docs) in one transaction.
+      const { error: rpcError } = await updateSellerProfileAtomic({
+        userId:             user!.id,
+        role:               'seller',
+        isIdVerified:       false,
+        county:             formData.county,
+        farmName:           finalFarmName,
+        farmLocation:       formData.farmLocation,
+        verificationStatus: 'pending',
+        ...(skip ? {} : {
+          idFrontUrl:  formData.idFrontUrl,
+          idBackUrl:   formData.idBackUrl,
+          idFrontPath: formData.idFrontPath,
+          idBackPath:  formData.idBackPath,
+        }),
       });
-      if (profileUpdateError) throw profileUpdateError;
+      if (rpcError) throw rpcError;
 
       await refreshUser();
 

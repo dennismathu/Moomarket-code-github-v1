@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import { Clock, MapPin, ChevronRight, Bookmark, Search, Shield, CalendarCheck, Calendar } from 'lucide-react';
 import { getSavedListings, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 const BuyerDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { refreshNotifications } = useNotifications();
   const [savedCows, setSavedCows] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [inspections, setInspections] = React.useState<any[]>([]);
@@ -38,7 +40,7 @@ const BuyerDashboard: React.FC = () => {
       const { error } = await updateInspectionRequest(inspectionId, { rescheduled_by: null });
       if (error) throw error;
       setInspections(prev => prev.map(i => i.id === inspectionId ? { ...i, rescheduled_by: null } : i));
-      window.dispatchEvent(new CustomEvent('refreshNotifications'));
+      await refreshNotifications();
     } catch (err) {
       console.error('Error confirming new date:', err);
       alert('Failed to confirm new date');

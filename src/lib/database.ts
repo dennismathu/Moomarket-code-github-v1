@@ -366,6 +366,55 @@ export async function createOrUpdateSellerProfile(userId: string, profile: any) 
     }
 }
 
+/**
+ * Atomically update public.users AND public.seller_profiles in a single
+ * PostgreSQL transaction via RPC. If either table update fails the entire
+ * operation is rolled back, preventing inconsistent "half-seller" state.
+ */
+export async function updateSellerProfileAtomic(params: {
+    userId: string
+    // users fields
+    fullName?: string
+    phoneNumber?: string
+    county?: string
+    specificLocation?: string
+    role?: 'buyer' | 'seller'
+    isIdVerified?: boolean
+    // seller_profiles fields
+    farmName?: string
+    farmLocation?: string
+    verificationStatus?: 'pending' | 'verified' | 'rejected'
+    idFrontUrl?: string
+    idBackUrl?: string
+    idFrontPath?: string
+    idBackPath?: string
+}) {
+    try {
+        const { data, error } = await supabase.rpc('update_seller_profile_atomic', {
+            p_user_id:            params.userId,
+            p_full_name:          params.fullName          ?? null,
+            p_phone_number:       params.phoneNumber       ?? null,
+            p_county:             params.county            ?? null,
+            p_specific_location:  params.specificLocation  ?? null,
+            p_role:               params.role              ?? null,
+            p_is_id_verified:     params.isIdVerified      ?? null,
+            p_farm_name:          params.farmName          ?? null,
+            p_farm_location:      params.farmLocation      ?? null,
+            p_verification_status:params.verificationStatus?? null,
+            p_id_front_url:       params.idFrontUrl        ?? null,
+            p_id_back_url:        params.idBackUrl         ?? null,
+            p_id_front_path:      params.idFrontPath       ?? null,
+            p_id_back_path:       params.idBackPath        ?? null,
+        })
+
+        if (error) throw error
+        return { data, error: null }
+    } catch (error) {
+        console.error('Error in updateSellerProfileAtomic:', error)
+        return { data: null, error: error as Error }
+    }
+}
+
 // ============================================
 // FILE UPLOADS
 // ============================================

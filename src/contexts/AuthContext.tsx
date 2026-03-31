@@ -59,12 +59,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (!data) {
                 // The DB trigger failed to create the profile row.
-                // Return null — callers should surface a user-visible error.
-                console.error(
+                // Attempt a safe fallback INSERT using the auth user's metadata.
+                console.warn(
                     'No profile row found in public.users for auth user:', userId,
-                    '— the DB trigger may have failed. Contact support.'
+                    '— attempting fallback INSERT from auth metadata.'
                 );
-                return null;
+
+                // Get the current session to read metadata
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+                if (!authUser) return null;
+
+                const meta = authUser.user_metadata || {};
+                const fallbackRole = (meta.role === 'seller' ? 'seller' : 'buyer') as 'buyer' | 'seller';
+                const fallbackName = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+
+                const { data: inserted, error: insertError } = await supabase
+                    .from('users')
+                    .insert({
+                        id: userId,
+                        email: authUser.email,
+                        full_name: fallbackName,
+                        role: fallbackRole,
+                        is_phone_verified: false,
+                        is_email_verified: !!authUser.email_confirmed_at,
+                        is_id_verified: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    })
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    console.error(
+                        'Fallback INSERT into public.users failed:', insertError.message,
+                        '— user profile cannot be loaded. Contact support.'
+                    );
+                    return null;
+                }
+
+                if (import.meta.env.DEV) console.log('Fallback profile created for:', userId);
+                return inserted as User;
             }
 
             if (import.meta.env.DEV) console.log('Profile fetched successfully for:', userId);
@@ -96,7 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (mounted) setLoading(false);
         };
 
-        initAuth();
+        // Wrap with a 10-second safety timeout so `loading` never hangs forever.
+        const timeout = new Promise<void>((resolve) => setTimeout(resolve, 10_000));
+        Promise.race([initAuth(), timeout]).finally(() => {
+            // Guard against updating state after the component unmounts (e.g. after sign-out navigation)
+            if (mounted) setLoading(false);
+        });
 
         // Listen for auth changes (sign-in, sign-out, token refresh, password recovery)
         const {
@@ -181,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             setMessage({ text: 'Login successful!', type: 'success' })
             return { error: null }
-        } catch (error) {
+        } catch (error: any) {
             return { error: error as Error }
         }
     }
@@ -253,11 +292,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Sign out
     const signOut = async () => {
-        await supabase.auth.signOut()
+        // 1. Clear local state IMMEDIATELY for responsive UI
         setUser(null)
         setSupabaseUser(null)
         setSession(null)
+        setLoading(false)
         setMessage({ text: 'Logged out successfully', type: 'info' })
+
+        // 2. Clear Supabase session with safety timeout
+        try {
+            const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+            await Promise.race([supabase.auth.signOut(), timeout]);
+        } catch (error) {
+            console.warn('Sign out background task error or timeout:', error);
+        }
     }
 
     // Update profile

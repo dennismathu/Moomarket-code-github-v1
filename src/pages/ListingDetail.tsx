@@ -14,10 +14,12 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import ShareModal from '../components/share/ShareModal'
 import { supabase } from '../lib/supabase';
+import { useNotifications } from '../contexts/NotificationContext';
 
 const ListingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user, setMessage } = useAuth();
+  const { refreshNotifications } = useNotifications();
   const [cow, setCow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -198,7 +200,7 @@ const ListingDetail: React.FC = () => {
         if (error) throw error;
         alert("Viewing date updated successfully!");
         setExistingRequest({ ...existingRequest, preferred_date: inspectionDate });
-        window.dispatchEvent(new CustomEvent('refreshNotifications'));
+        await refreshNotifications();
       } else {
         const { error } = await createInspectionRequest({
           listing_id: id!,
@@ -209,7 +211,7 @@ const ListingDetail: React.FC = () => {
         if (error) throw error;
         alert("Viewing request sent successfully!");
         checkIfRequested();
-        window.dispatchEvent(new CustomEvent('refreshNotifications'));
+        await refreshNotifications();
       }
       setShowInspectionModal(false);
     } catch (err: any) {

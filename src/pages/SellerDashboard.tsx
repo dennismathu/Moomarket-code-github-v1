@@ -8,10 +8,12 @@ import {
 } from 'lucide-react';
 import { getSellerListings, deleteListing as deleteListingFromDb, getSavedListings, getInspectionRequestsBySeller, getInspectionRequestsByBuyer, updateInspectionRequest } from '../lib/database';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 
 const SellerDashboard: React.FC = () => {
    const { user } = useAuth();
+   const { refreshNotifications } = useNotifications();
    const navigate = useNavigate();
    const [sellerListings, setSellerListings] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
@@ -187,8 +189,8 @@ const SellerDashboard: React.FC = () => {
          const { error } = await updateInspectionRequest(requestId, { status, rescheduled_by: null });
          if (error) throw error;
          setInspectionRequests(prev => prev.map(req => req.id === requestId ? { ...req, status, rescheduled_by: null } : req));
-         // Trigger notification refresh
-         window.dispatchEvent(new CustomEvent('refreshNotifications'));
+         // Notify context to re-fetch
+         await refreshNotifications();
       } catch (err) {
          console.error('Error updating inspection status:', err);
          alert('Failed to update viewing status');
@@ -202,8 +204,8 @@ const SellerDashboard: React.FC = () => {
          const { error } = await updateInspectionRequest(reschedulingRequest.id, { preferred_date: newInspectionDate, rescheduled_by: 'seller' });
          if (error) throw error;
          setInspectionRequests(prev => prev.map(req => req.id === reschedulingRequest.id ? { ...req, preferred_date: newInspectionDate } : req));
-         // Trigger notification refresh
-         window.dispatchEvent(new CustomEvent('refreshNotifications'));
+         // Notify context to re-fetch
+         await refreshNotifications();
          setReschedulingRequest(null);
          setNewInspectionDate('');
          alert('Viewing rescheduled successfully!');

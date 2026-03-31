@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronLeft, Save, MapPin, Phone, User as UserIcon, CheckCircle2, ArrowRight, LayoutDashboard, ShoppingBag } from 'lucide-react'
-
+import { updateSellerProfileAtomic } from '../lib/database'
 import { COUNTIES } from '../data/counties'
 
 export default function ProfilePage() {
-    const { user, updateProfile } = useAuth()
+    const { user, loading: authLoading, updateProfile, refreshUser } = useAuth()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState(false)
@@ -52,26 +52,37 @@ export default function ProfilePage() {
         setSuccess(false)
         setLoading(true)
 
-        const { error } = await updateProfile({
-            full_name: formData.full_name,
-            phone_number: formData.phone_number,
-            county: formData.county,
-            specific_location: formData.specific_location
-        })
+        let saveError: Error | null = null
 
         if (user?.role === 'seller') {
-            await import('../lib/database').then(async ({ createOrUpdateSellerProfile }) => {
-                await createOrUpdateSellerProfile(user.id, {
-                    farm_name: formData.farm_name,
-                    farm_location: formData.farm_location
-                })
+            // Single atomic RPC — updates users + seller_profiles in one transaction.
+            // If either table update fails, the whole operation rolls back.
+            const { error } = await updateSellerProfileAtomic({
+                userId:           user.id,
+                fullName:         formData.full_name,
+                phoneNumber:      formData.phone_number,
+                county:           formData.county,
+                specificLocation: formData.specific_location,
+                farmName:         formData.farm_name,
+                farmLocation:     formData.farm_location,
             })
+            saveError = error
+        } else {
+            // Buyers have no seller_profiles row — plain users update is sufficient.
+            const { error } = await updateProfile({
+                full_name:         formData.full_name,
+                phone_number:      formData.phone_number,
+                county:            formData.county,
+                specific_location: formData.specific_location,
+            })
+            saveError = error
         }
 
-        if (error) {
-            setError(error.message)
+        if (saveError) {
+            setError(saveError.message)
             setLoading(false)
         } else {
+            await refreshUser()
             setSuccess(true)
             setLoading(false)
             // Clear success message after 3 seconds
@@ -79,10 +90,42 @@ export default function ProfilePage() {
         }
     }
 
-    if (!user) {
+    // While AuthContext is still resolving session + profile, show a spinner.
+    if (authLoading) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            </div>
+        )
+    }
+
+    // AuthContext finished loading but profile row is still null — fallback INSERT failed.
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10 text-center">
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                        <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Profile Not Ready</h2>
+                    <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                        Your account was created but the profile record hasn't been set up yet.
+                        This can happen if email confirmation is still pending or if there was a brief server hiccup.
+                    </p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => refreshUser()}
+                            className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
+                        >
+                            Retry Loading Profile
+                        </button>
+                        <Link to="/" className="block w-full py-3 text-slate-500 font-medium text-sm hover:text-slate-700 transition-colors">
+                            Back to Home
+                        </Link>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -248,7 +291,7 @@ export default function ProfilePage() {
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                                                    Farm Location
+                                                    Farm map location <span className="text-slate-300 font-normal lowercase tracking-normal">(Optional)</span>
                                                 </label>
                                                 <div className="relative">
                                                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -257,7 +300,7 @@ export default function ProfilePage() {
                                                         value={formData.farm_location}
                                                         onChange={(e) => setFormData({ ...formData, farm_location: e.target.value })}
                                                         className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                                        placeholder="Farm Location coordinates or address"
+                                                        placeholder="Google Maps link or coordinates"
                                                     />
                                                 </div>
                                             </div>

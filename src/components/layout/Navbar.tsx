@@ -2,79 +2,32 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Bell, LayoutDashboard, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getNotifications } from '../../lib/database';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 const Navbar = () => {
     const { user, supabaseUser, signOut } = useAuth();
+    const { notifications, unreadCount } = useNotifications();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [unreadCount, setUnreadCount] = useState(0);
 
     // Profile Fallbacks (if row missing in public.users)
     const displayName = user?.full_name || supabaseUser?.user_metadata?.full_name || supabaseUser?.email?.split('@')[0] || 'User';
     const displayRole = user?.role || supabaseUser?.user_metadata?.role || 'buyer';
 
     useEffect(() => {
-        if (supabaseUser) {
-            fetchNotifications();
-            const interval = setInterval(fetchNotifications, 10000);
-
-            // Add listener for manual refreshes
-            const handleRefresh = () => fetchNotifications();
-            window.addEventListener('refreshNotifications', handleRefresh);
-
-            // Close dropdown on click outside
-            const handleClickOutside = (event: MouseEvent) => {
-                const target = event.target as HTMLElement;
-                if (!target.closest('.notifications-container')) {
-                    setIsNotificationsOpen(false);
-                }
-            };
-            document.addEventListener('mousedown', handleClickOutside);
-
-            return () => {
-                clearInterval(interval);
-                window.removeEventListener('refreshNotifications', handleRefresh);
-                document.removeEventListener('mousedown', handleClickOutside);
-            };
-        }
-    }, [user]);
-
-    const fetchNotifications = async () => {
-        if (!user) return;
-        try {
-            const { data, error } = await getNotifications(user.id);
-            if (error) throw error;
-
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toDateString();
-
-            const enhancedData = data?.map((n: any) => {
-                const targetDate = new Date(n.preferred_date);
-                const isTomorrow = targetDate.toDateString() === tomorrowStr;
-                const isUpdated = new Date(n.updated_at).getTime() - new Date(n.created_at).getTime() > 2000;
-                return { ...n, isTomorrow, isUpdated };
-            });
-
-            const unread = enhancedData?.filter((n: any) =>
-                (n.listing.seller_id === user.id && n.status === 'pending') ||
-                (n.buyer_id === user.id && n.status === 'confirmed') ||
-                (n.listing.seller_id === user.id && n.rescheduled_by === 'buyer') ||
-                (n.buyer_id === user.id && n.rescheduled_by === 'seller') ||
-                n.type === 'listing_status' ||
-                n.isTomorrow
-            ).length || 0;
-
-            setNotifications(enhancedData || []);
-            setUnreadCount(unread);
-        } catch (err) {
-            console.error('Error fetching notifications:', err);
-        }
-    };
+        // Close dropdown on click outside
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.notifications-container')) {
+                setIsNotificationsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
