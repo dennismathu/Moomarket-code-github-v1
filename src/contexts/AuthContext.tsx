@@ -112,10 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state
     useEffect(() => {
         let mounted = true;
-        // Guard flag: prevents onAuthStateChange from doing a redundant profile
-        // fetch while initAuth() is still running (Supabase fires SIGNED_IN for
-        // existing sessions synchronously, which would cause a double DB call).
-        let isInitializing = true;
+        // Ref to track the user ID we've already fetched (or are fetching)
+        // to prevent double DB calls since 'user' state is captured as null in this closure.
+        const fetchedUserIdRef = { current: null as string | null };
 
         // Get initial session — async so setLoading(false) only fires AFTER profile fetch
         const initAuth = async () => {
@@ -126,22 +125,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const currentSupabaseUser = session?.user ?? null;
             setSupabaseUser(currentSupabaseUser);
 
-            if (currentSupabaseUser) {
+            if (currentSupabaseUser && fetchedUserIdRef.current !== currentSupabaseUser.id) {
+                fetchedUserIdRef.current = currentSupabaseUser.id;
                 const profile = await fetchUserProfile(currentSupabaseUser.id);
                 if (mounted) setUser(profile);
             }
             // setLoading only after the async profile fetch is fully resolved
             if (mounted) setLoading(false);
-
-            // Allow the subscription listener to process future events
-            isInitializing = false;
         };
 
         // Wrap with a 10-second safety timeout so `loading` never hangs forever.
         const timeout = new Promise<void>((resolve) => setTimeout(resolve, 10_000));
         Promise.race([initAuth(), timeout]).finally(() => {
-            // Ensure the flag is cleared even if initAuth times out
-            isInitializing = false;
             if (mounted) setLoading(false);
         });
 
@@ -151,10 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!mounted) return;
 
-            // Skip: initAuth() is already handling the initial session on first load.
-            // This prevents a double fetchUserProfile() call on cold start.
-            if (isInitializing) return;
-
             if (import.meta.env.DEV) console.log('Auth state change event:', event);
 
             setSession(session);
@@ -162,17 +153,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSupabaseUser(currentSupabaseUser);
 
             if (!currentSupabaseUser) {
+                fetchedUserIdRef.current = null;
                 setUser(null);
                 setLoading(false);
                 return;
             }
 
-            // TOKEN_REFRESHED fires silently every ~1 hour and on tab focus.
-            // Skip the DB round-trip when we already have the profile in state.
-            if (event === 'TOKEN_REFRESHED' && user !== null) {
+            // If we already fetched (or are currently fetching) the profile for this user
+            // via initAuth or an earlier event, skip the redundant DB call.
+            if (fetchedUserIdRef.current === currentSupabaseUser.id) {
                 return;
             }
 
+            fetchedUserIdRef.current = currentSupabaseUser.id;
             const profile = await fetchUserProfile(currentSupabaseUser.id);
             if (mounted) {
                 setUser(profile);

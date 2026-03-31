@@ -47,6 +47,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Track whether this provider instance is still mounted.
+    // Guards against setting state after unmount (and silently discards
+    // AbortErrors caused by React Strict Mode's double-mount in dev).
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     const fetchNotifications = useCallback(async () => {
         if (!user) return;
@@ -54,6 +65,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setLoading(true);
         try {
             const { data, error } = await getNotifications(user.id);
+
+            // Component unmounted while request was in-flight — discard silently.
+            if (!mountedRef.current) return;
+
             if (error) throw error;
 
             const today = new Date();
@@ -80,10 +95,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             setNotifications(enriched);
             setUnreadCount(unread);
-        } catch (err) {
-            console.error('Error fetching notifications:', err);
+        } catch (err: any) {
+            // AbortError is a React Strict Mode / unmount lifecycle artifact — not a real error.
+            // Supabase aborts in-flight requests when the client connection is torn down.
+            if (err?.message?.includes('AbortError') || err?.name === 'AbortError') return;
+            if (mountedRef.current) {
+                console.error('Error fetching notifications:', err);
+            }
         } finally {
-            setLoading(false);
+            if (mountedRef.current) setLoading(false);
         }
     }, [user]);
 
